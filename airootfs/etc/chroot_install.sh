@@ -9,7 +9,7 @@ echo 127.0.0.1 localhost > /etc/hosts
 echo ::1 localhost >> /etc/hosts
 echo 127.0.1.1 Arch-Linux >> /etc/hosts
 clear
-echo enter new root password:
+echo enter new root password
 passwd
 pacman -S grub efibootmgr <<< Y
 mkdir /boot/efi
@@ -19,10 +19,9 @@ grub-mkconfig -o /boot/grub/grub.cfg
 pacman -S --noconfirm dhcpcd ebtables fakeroot sudo libvirt virt-manager git curl wget zsh go base-devel htop nfs-utils vi vim nitrogen neofetch rofi i3 xorg xorg-xinit qemu ovmf nvidia chromium steam <<< Y
 useradd -m -s /bin/zsh deathmasia
 clear
-echo enter user password:
+echo enter user password
 passwd deathmasia
 systemctl enable libvirtd
 systemctl enable dhcpcd
 echo 'deathmasia ALL=(ALL:ALL) ALL' >> /etc/sudoers
-git clone https://aur.archlinux.org/yay.git /home/deathmasia/yay/
 
