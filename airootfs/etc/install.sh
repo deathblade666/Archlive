@@ -16,5 +16,6 @@ cp /etc/post_install.sh /mnt/config/post_install.sh
 mv /mnt/etc/pacman.conf /mnt/etc/pacman.conf.bak
 cp /etc/pacman.conf /mnt/etc/pacman.conf
 cp /root/10-monitor.conf /mnt/config/10-monitor.conf
+cp /root/arch-wallpaper.png /mnt/config/arch-wallpaper.png
 arch-chroot /mnt ./chroot_install.sh
 
