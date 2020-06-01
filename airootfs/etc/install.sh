@@ -9,11 +9,12 @@ pacstrap /mnt base linux linux-firmware vim nano
 genfstab -U /mnt >> /mnt/etc/fstab
 mkdir /mnt/config
 cp /root/oh-my-zsh.sh /mnt/etc/skel/oh-my-zsh.sh
-cp -r /root/scripts /mnt/etc/skel/scripts
+cp -r /root/config_setup.sh /mnt/etc/skel/config_setup.sh
 cp /root/.xinitrc /mnt/etc/skel/.xinitrc
 cp /etc/chroot_install.sh /mnt/chroot_install.sh
 cp /etc/post_install.sh /mnt/config/post_install.sh
 mv /mnt/etc/pacman.conf /mnt/etc/pacman.conf.bak
 cp /etc/pacman.conf /mnt/etc/pacman.conf
+cp /root/10-monitor.conf /mn/config/10-monitor.conf
 arch-chroot /mnt ./chroot_install.sh
 
