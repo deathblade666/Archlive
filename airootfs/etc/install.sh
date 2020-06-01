@@ -15,6 +15,6 @@ cp /etc/chroot_install.sh /mnt/chroot_install.sh
 cp /etc/post_install.sh /mnt/config/post_install.sh
 mv /mnt/etc/pacman.conf /mnt/etc/pacman.conf.bak
 cp /etc/pacman.conf /mnt/etc/pacman.conf
-cp /root/10-monitor.conf /mn/config/10-monitor.conf
+cp /root/10-monitor.conf /mnt/config/10-monitor.conf
 arch-chroot /mnt ./chroot_install.sh
 
