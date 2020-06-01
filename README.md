@@ -4,9 +4,11 @@
   archiso can be installed by running one of the following commands
   
   for pacman install
+  
   ``` sudo pacman -S archiso ```
   
   for yay install
+  
   ``` yay -S archiso-git ```
   
   Once it is installed you can clone this repo with the following command
