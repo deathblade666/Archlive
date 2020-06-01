@@ -3,11 +3,11 @@
 # This requires archiso be installed to run
   archiso can be installed by running one of the following commands
   
-  for pacman install
+  pacman install
   
   ``` sudo pacman -S archiso ```
   
-  for yay install
+  yay install
   
   ``` yay -S archiso-git ```
   
