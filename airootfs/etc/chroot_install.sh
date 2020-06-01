@@ -23,5 +23,6 @@ echo enter user password
 passwd deathmasia
 systemctl enable libvirtd
 systemctl enable dhcpcd
+mv /config/10-monitor.conf /etc/X11/xorg.conf.d/10-monitor.conf
 echo 'deathmasia ALL=(ALL:ALL) ALL' >> /etc/sudoers
 
