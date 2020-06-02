@@ -19,7 +19,7 @@ git clone https://github.com/deathblade666/kde-i3-setup.git ~/.config/kde-i3
 # copy config files and remove old directories
 cp -r ~/.config/i3config/i3 ~/.config/i3
 cp -r ~/.config/kde-i3/rofi ~/.config/rofi
-rm -r ~/.config/i3/i3conifg/ <<< yes <<< yes
+rm -r ~/.config/i3conifg/ <<< yes <<< yes
 rm -r ~/.config/kde-i3/ <<< yes <<< yes
 
 # Set wallpaper
