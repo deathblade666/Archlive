@@ -23,10 +23,6 @@ echo enter user password
 passwd deathmasia
 systemctl enable libvirtd
 systemctl enable dhcpcd
-mkdir /home/deathmasia/wallpaper/
-mv /config/arch-wallpaper.png /home/deathmasia/wallpaper/arch-wallpaper.png
 mv /config/10-monitor.conf /etc/X11/xorg.conf.d/10-monitor.conf
-mkdir /home/deathmasia/.config/nitrogen
-mv /config/bg-save.cfg /home/deathmasia/.config/nitrogen/bg-save.cfg
 echo 'deathmasia ALL=(ALL:ALL) ALL' >> /etc/sudoers
 
