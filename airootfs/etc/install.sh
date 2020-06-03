@@ -17,6 +17,5 @@ mv /mnt/etc/pacman.conf /mnt/etc/pacman.conf.bak
 cp /etc/pacman.conf /mnt/etc/pacman.conf
 cp /root/10-monitor.conf /mnt/config/10-monitor.conf
 cp /root/arch-wallpaper.png /mnt/config/arch-wallpaper.png
-cp /root/bg-save.cfg /mnt/config/bg-save.cfg
 arch-chroot /mnt ./chroot_install.sh
 
