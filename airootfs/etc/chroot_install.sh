@@ -16,7 +16,7 @@ mkdir /boot/efi
 mount /dev/sda1 /boot/efi
 grub-install --target=x86_64-efi --bootloader-id=GRUB --efi-directory=/boot/efi
 grub-mkconfig -o /boot/grub/grub.cfg
-pacman -S --noconfirm dhcpcd ebtables fakeroot sudo libvirt virt-manager git curl wget netctl dialog wpa_supplicant zsh go base-devel htop nfs-utils vi vim nitrogen neofetch rofi i3 xorg xorg-xinit qemu ovmf nvidia chromium steam <<< Y
+pacman -S --noconfirm dhcpcd ebtables fakeroot sudo libvirt virt-manager git curl wget netctl dialog wpa_supplicant polkit-gnome zsh go base-devel htop nfs-utils vi vim nitrogen neofetch rofi i3 xorg xorg-xinit qemu ovmf nvidia chromium steam <<< Y
 useradd -m -s /bin/zsh deathmasia
 clear
 echo enter user password
