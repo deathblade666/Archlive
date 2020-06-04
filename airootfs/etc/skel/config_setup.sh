@@ -28,8 +28,6 @@ git clone https://aur.archlinux.org/yay.git ~/yay
 cd ~/yay
 makepkg -si
 yay -S st <<< N
-yay -S preload <<< N
-systemctl enable preload
 wifi-menu
 clear
 echo Setup complete you may now start using this system as normal, to get a UI type "startx"
