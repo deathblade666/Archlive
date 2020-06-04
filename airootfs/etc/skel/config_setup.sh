@@ -32,4 +32,4 @@ yay -S preload <<< N
 systemctl enable preload
 wifi-menu
 clear
-ech Setup complete you may now start using this system as normal, to get a UI type "startx"
+echo Setup complete you may now start using this system as normal, to get a UI type "startx"
