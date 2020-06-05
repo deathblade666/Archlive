@@ -27,5 +27,6 @@ mv /config/10-monitor.conf /etc/X11/xorg.conf.d/10-monitor.conf
 echo 'deathmasia ALL=(ALL:ALL) ALL' >> /etc/sudoers
 amixer sset Master unmute
 amixer sset Speaker unmute
+rm /etc/install.sh
 echo User creation and application installation is complete, you may now reboot into your new system.
 
