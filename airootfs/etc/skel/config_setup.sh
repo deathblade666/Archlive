@@ -1,5 +1,7 @@
 #!/bin/bash
 
+sudo rm /etc/chroot_install.sh
+
 # cloning and installing oh-my-zsh and powerline fonts 
 git clone https://github.com/deathblade666/zsh.git ~/.config/zsh
 cd ~/.config/zsh/script
