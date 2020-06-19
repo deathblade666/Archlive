@@ -2,21 +2,20 @@
 
 sudo rm /etc/chroot_install.sh
 
-# cloning and installing oh-my-zsh and powerline fonts 
-git clone https://github.com/deathblade666/zsh.git ~/.config/zsh
-cd ~/.config/zsh/script
+# cloning and installing oh-my-zsh and powerline fonts
+git clone https://github.com/deathblade666/dot_files.git ~/.config/dot_files
+cd ~/.config/dot_files/zsh/script
 chmod +x install_zsh.sh
 ./install_zsh.sh
 mv ~/.oh-my-zsh/oh-my-zsh.sh ~/.oh-my-zsh/oh-my-zsh.sh.bak
-cp ~/oh-my-zsh.sh ~/.oh-my-zsh/oh-my-zsh.sh
+cp ~/.config/dot_files/zsh/oh-my-zsh/oh-my-zsh.sh ~/.oh-my-zsh/oh-my-zsh.sh
 mv ~/.zshrc ~/zshrc.bak
-cp ~/.config/zsh/.zshrc ~/.zshrc
+cp ~/.config/dot_files/zsh/.zshrc ~/.zshrc
 
 # clone i3 config
-git clone https://github.com/deathblade666/i3config.git ~/.config/i3config
-
-# clone config files
-git clone https://github.com/deathblade666/kde-i3-setup.git ~/.config/kde-i3
+mv -r ~/.config/dot_files/i3 ~/.config/i3
+mv -r ~/.config/dot_files/rofi ~/.config/rofi
+mv -r ~/.config/dot_files/i3blocks ~/.config/i3blocks
 
 # copy config files and remove old directories
 cp -r ~/.config/i3config/i3 ~/.config/i3
@@ -30,6 +29,5 @@ git clone https://aur.archlinux.org/yay.git ~/yay
 cd ~/yay
 makepkg -si
 yay -S st <<< N
-wifi-menu
 clear
 echo Setup complete you may now start using this system as normal, to get a UI type "startx"
