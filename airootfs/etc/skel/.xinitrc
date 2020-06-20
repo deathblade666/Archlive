@@ -53,4 +53,4 @@ xclock -geometry 50x50-1+1 &
 #xterm -geometry 80x50+494+51 &
 #xterm -geometry 80x20+494-0 &
 #exec xterm -geometry 80x66+0+0 -name login
-exec i3
+exec i3 --config ~/config/dot_files/i3/config
