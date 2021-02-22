@@ -1,4 +1,5 @@
 #!/bin/bash
+ln -sf /usr/share/zoneinfo/America/New_York /etc/localtime
 echo en_US.UTF-8 UTF-8 >> /etc/locale.gen
 timedatectl set-timezone America/New_York
 locale-gen
