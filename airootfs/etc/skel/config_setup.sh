@@ -13,9 +13,9 @@ mv ~/.zshrc ~/.zshrc.bak
 cp ~/.config/dot_files/zsh/.zshrc ~/.zshrc
 
 # install yay and st terminal
-git clone https://aur.archlinux.org/yay.git ~/yay
-cd ~/yay
+git clone https://aur.archlinux.org/paru.git ~/.config/paru
+cd ~/.config/paru
 makepkg -si
-yay -S st <<< N
+paru -S st librewolf-bin <<< N
 clear
 echo Setup complete you may now start using this system as normal, to get a UI type "startx"
