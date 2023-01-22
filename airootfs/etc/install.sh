@@ -1,9 +1,9 @@
 
 #!/bin/bash
-(echo o; echo n; echo p; echo 1; echo""; echo +512M; echo t; echo ef; echo n; echo p; echo 2; echo ""; echo ""; echo w) | fdisk /dev/sda
-mkfs.fat -F32 /dev/sda1
-mkfs.ext4 /dev/sda2 <<< Y
-mount /dev/sda2 /mnt
+(echo o; echo n; echo p; echo 1; echo""; echo +512M; echo t; echo ef; echo n; echo p; echo 2; echo ""; echo ""; echo w) | fdisk /dev/nvme0n1
+mkfs.fat -F32 /dev/nvme0n1
+mkfs.ext4 /dev/nvme0n2 <<< Y
+mount /dev/nvme0n2 /mnt
 pacman -Syy
 pacstrap /mnt base linux linux-firmware vim nano
 genfstab -U /mnt >> /mnt/etc/fstab
