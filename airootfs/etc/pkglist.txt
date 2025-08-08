@@ -1,0 +1,120 @@
+# Kernel & firmware
+linux-zen               # Mainline Linux kernel
+linux-firmware          # Firmware binaries for supported hardware
+
+# Essential tools
+sudo                    # Privilege elevation utility
+vim                     # Text editor
+git                     # Version control system
+htop                    # Interactive process viewer
+zsh                     # Alternative shell
+fastfetch               # Fast system info tool (Neofetch alternative)
+
+# Wayland environment
+wayland                 # Wayland protocol libraries
+wayland-protocols       # Standard Wayland protocol extensions
+xorg-xwayland           # X server compatibility for Wayland
+mesa                    # Open-source graphics drivers
+lib32-mesa              # 32-bit compatibility Mesa libs
+
+# Fonts
+ttf-dejavu              # DejaVu font family
+ttf-liberation          # Liberation font family
+noto-fonts              # Noto sans fonts for multiple scripts
+noto-fonts-emoji        # Noto font for emoji support
+
+# Audio
+pipewire                # Modern audio server replacement
+pipewire-pulse          # PulseAudio compatibility layer
+wireplumber             # PipeWire session manager
+alsa-utils              # ALSA tools (e.g., mixer, playback)
+lib32-libpulse          # 32-bit PulseAudio libs
+lib32-openal            # 32-bit OpenAL (audio API)
+lib32-alsa-plugins      # 32-bit ALSA plugins
+
+# Development tools
+base
+base-devel              # Base development tools group
+gcc                     # C/C++ compiler
+make                    # Build automation tool
+cmake                   # Cross-platform build system
+rust                    # Rust programming language
+cargo                   # Rust package manager and build tool
+fakeroot                # Simulate root for AUR builds (required for `paru`)
+
+# DWL build dependencies
+wlroots0.18             # Wayland compositor library
+libxkbcommon            # Keyboard layout handling library
+xcb-util                # XCB helper utilities
+xcb-util-wm             # XCB window management helpers
+xcb-util-errors         # XCB error handling extensions
+xcb-util-keysyms        # XCB key symbol utilities
+
+# Optional Wayland utilities
+grim                    # Screenshot tool for Wayland
+slurp                   # Region selector tool used with grim
+wl-clipboard            # Clipboard utility for Wayland
+
+# Optional CLI goodies
+man-db                  # Manual pages database
+bat                     # Syntax-highlighting cat clone
+jq                      # JSON processor (CLI)
+
+# QT & GTK Wayland backends
+qt5-wayland             # Wayland backend for Qt5 apps
+qt6-wayland             # Wayland backend for Qt6 apps
+gtk3                    # GTK 3 GUI toolkit
+gtk4                    # GTK 4 GUI toolkit
+
+# Terminal emulator
+alacritty               # GPU-accelerated terminal emulator
+
+# Screen sharing
+xdg-desktop-portal      # Desktop integration services
+xdg-desktop-portal-wlr  # Wayland portal backend for wlroots
+
+# Gaming tools
+steam                   # Gaming platform and launcher
+vulkan-icd-loader       # Vulkan driver loader
+lib32-vulkan-icd-loader # 32-bit Vulkan driver loader
+gamemode                # Performance tuning for games
+
+# Streaming & recording
+obs-studio              # Open Broadcaster Software (streaming & recording)
+
+# Containerization
+docker                  # Container runtime and tools
+docker-compose          # Multi-container orchestration tool
+
+# Document viewer
+zathura                 # Lightweight document viewer
+zathura-pdf-poppler     # PDF plugin for Zathura using Poppler
+
+# File manager
+pcmanfm                 # Lightweight graphical file manager
+gvfs                    # Virtual filesystem support for file manager
+
+# Media player
+mpv                     # Versatile media player with CLI and GUI
+
+# Archive utilities
+zip                     # ZIP archive tool
+unzip                   # ZIP extraction tool
+
+# Samba client support
+samba                   # SMB/CIFS client/server tools
+cifs-utils              # CIFS mount helpers
+
+# TUI file manager
+ranger                  # Text-based file manager (CLI)
+
+# Wallpaper tools
+swaybg                  # Background utility for Sway/Wayland
+
+# Required for spinner-driven setup and Wi-Fi configuration
+dialog                  # Interactive text-based GUI prompts
+wpa_supplicant          # WPA/WPA2/WPA3 authentication for wireless networks
+wireless_tools          # Includes iwlist for scanning Wi-Fi networks
+iw                      # Modern wireless interface configuration tool
+btrfs-progs             # Btrfs filesystem utilities (used in parent script)
+
