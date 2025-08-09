@@ -4,17 +4,17 @@
 ## Key Features
 
 1. systemd driven
-  - systemd-networkd
-  - systemd-resolved
-  - systemd-homed
-    - home dir encryption with LUKS
+    - systemd-networkd
+    - systemd-resolved
+    - systemd-homed
+      - home dir encryption with LUKS
 2. Custom easily modify installed packages
-  - modify the pklist.txt to suite your needs
-  - can include comments denoted by ``#`` for organization
+    - modify the pklist.txt to suite your needs
+    - can include comments denoted by ``#`` for organization
 3. compositor selection menu
 4. setup wifi during install
 5. minimal install
-  - only a handful of applications are installed out the box
+    - only a handful of applications are installed out the box
 6. Linux-Zen kernel for increase responsiveness
 
 ## Build
