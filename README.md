@@ -16,6 +16,16 @@
 5. minimal install
     - only a handful of applications are installed out the box
 6. Linux-Zen kernel for increase responsiveness
+7. btrfs ``/`` partition by defult
+
+
+## Furture Improvments
+- [ ] custom partition
+    - currently its set to a defult of 
+      - 1GB EFI
+      - 4 GB swap
+      - BTRFS ``/``
+        - ext4 Home (encrypted with LUKS)
 
 ## Build
   archiso is required and can be installed by running one of the following commands
