@@ -123,3 +123,7 @@ fcft
 tllist
 wmenu
 
+# Screenshot utils
+slurp
+wl-clipboard
+grim
