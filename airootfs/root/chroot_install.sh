@@ -147,6 +147,9 @@ RequiredForOnline=routable
 
 [Network]
 DHCP=yes
+
+[DHCP]
+UseDNS=true
 EOF
     else
         echo "No Ethernet interface detected. Skipping Ethernet setup." >&2
@@ -227,6 +230,9 @@ RequiredForOnline=routable
 [Network]
 DHCP=yes
 IgnoreCarrierLoss=3s
+
+[DHCP]
+UseDNS=true
 EOF
             }
             phase_spinner "Creating systemd-networkd config for Wi-Fi" create_wifi_network
@@ -293,6 +299,7 @@ RemainAfterExit=yes
 [Install]
 WantedBy=multi-user.target
 EOF
+    ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
     systemctl enable systemd-networkd 2>&1 | grep -vE 'Created symlink|is not a native service'
     systemctl enable systemd-homed 2>&1 | grep -vE 'Created symlink|is not a native service'
     systemctl enable systemd-resolved 2>&1 | grep -vE 'Created symlink|is not a native service'
