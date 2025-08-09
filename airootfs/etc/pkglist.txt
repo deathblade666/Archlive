@@ -118,3 +118,8 @@ wireless_tools          # Includes iwlist for scanning Wi-Fi networks
 iw                      # Modern wireless interface configuration tool
 btrfs-progs             # Btrfs filesystem utilities (used in parent script)
 
+# dwl required
+fcft
+tllist
+wmenu
+
