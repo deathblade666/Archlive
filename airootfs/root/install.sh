@@ -211,19 +211,19 @@ while true; do
             ;;
         3)
             selected_de="Sway"
-            desktop_packages="sway swayidle swaylock waybar foot grim slurp wl-clipboard"
+            desktop_packages="sway swayidle swaylock waybar foot grim slurp wl-clipboard polkit-gnome"
             display_manager=""
             break
             ;;
         4)
             selected_de="Hyprland"
-            desktop_packages="hyprland waybar foot grim slurp wl-clipboard hyprpaper hypridle hyprlock"
+            desktop_packages="hyprland waybar foot grim slurp wl-clipboard hyprpaper hypridle hyprlock polkit-gnome"
             display_manager=""
             break
             ;;
         5)
             selected_de="None"
-            desktop_packages=""
+            desktop_packages="polkit-gnome"
             display_manager=""
             break
             ;;
@@ -243,11 +243,6 @@ if [ -n "$desktop_packages" ]; then
         echo "$package" >> pkglist.txt
     done
     echo >> pkglist.txt
-fi
-
-# Append polkit agent to pkglist.txt if not already added
-if [[ "$selected_de" == "Sway" || "$selected_de" == "Hyprland" || "$selected_de" == "None" ]]; then
-    grep -qxF "polkit-gnome" pkglist.txt || echo "polkit-gnome" >> pkglist.txt
 fi
 
 # Create user configuration file
@@ -423,7 +418,16 @@ detect_cpu_and_append_ucode() {
     esac
 }
 
+detect_machine_type(){
+    system_type=$(hostnamectl | grep "Chassis")
+    if [[ $system_type == *"laptop"* ]]; then
+        echo tlp >> pkglist.txt
+    fi
+}
 detect_cpu_and_append_ucode
+detect_machine_type
+
+
 
 phase_spinner "Optimizing Repo Mirror List" bash -c 'pacman -Sy && reflector --latest 200 --protocol http,https --sort rate --save /etc/pacman.d/mirrorlist'
 phase_spinner "Installing Base System" pacstrap /mnt $(awk '!/^#/ { gsub(/#.*/, ""); print }' pkglist.txt)
