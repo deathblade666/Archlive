@@ -1,6 +1,9 @@
 #!/bin/bash
 
 rootPartition=$1
+installDisk=$2
+efiPartition=$3
+swapPartition=$4
 
 # Helper functions for clean spinner output
 phase_spinner() {
@@ -299,7 +302,6 @@ RemainAfterExit=yes
 [Install]
 WantedBy=multi-user.target
 EOF
-    ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
     systemctl enable systemd-networkd 2>&1 | grep -vE 'Created symlink|is not a native service'
     systemctl enable systemd-homed 2>&1 | grep -vE 'Created symlink|is not a native service'
     systemctl enable systemd-resolved 2>&1 | grep -vE 'Created symlink|is not a native service'
@@ -309,47 +311,42 @@ EOF
 }
 phase_spinner "Enabling system services" enable_system_services
 
-# Welcome message
-setup_welcome_message() {
-    cp /etc/issue /root/issue
-    cat >> /etc/issue << EOF
-Welcome to Arch Linux!
-Please enter the password for the user you created during install!
-
-EOF
-}
-phase_spinner "Setting up welcome message" setup_welcome_message
-
-
-
 source /root/user.conf
+
 
 clear
 echo "================================================="
 echo "           Installation Summary"
 echo "================================================="
 echo
+echo "Operations performed on $installDisk:"
+echo "-------------------------------------------------"
 status_complete "Deleting existing partitions"
-status_complete "Re-Partitioning disk"
-status_complete "Formatting EFI partition"
-status_complete "Formatting Btrfs root partition"
-status_complete "Setting up swap partition"
-status_complete "Mounting root partition"
-status_complete "Mounting EFI partition"
-status_complete "Activating swap"
-status_complete "Optimizing Repo Mirror List"
-status_complete "Installing Base System"
+status_complete "partitioned $installDisk"  
+status_complete "    EFI: 1GB | Swap: 4GB | Root: rest of disk"
+status_complete "Formated $efiPartition"
+status_complete "    EFI: FAT-32"
+status_complete "Formated $rootPartition"
+status_complete "    Root: btrfs"
+status_complete "Formated $swapPartition"
+status_complete "    Swap: swap"
+status_complete "Mounted root partition"
+status_complete "    $rootPartition mounted to /mnt"
+status_complete "Mounted EFI partition"
+status_complete "    $efiPartition mounted to /mnt/boot"
+status_complete "Activated swap"
+status_complete "    swap activated"
+status_complete "Optimized Repo Mirror List"
+status_complete "Installed Base System"
 status_complete "    Installed $DESKTOP_ENVIRONMENT"
 status_complete "    Created User: $USERNAME"
-status_complete "Configuring new system root.."
+status_complete "Configured new system root.."
 status_complete "    Hostname set"
 status_complete "    Root password configured"
 status_complete "    User account configured"
 status_complete "    WiFi Setup"
 status_complete "    Bootloader setup"
-status_complete "    Configure Boot Entries"
-status_complete "    Enable Mulitlib repos"
-status_complete "    Enable system services"
-status_complete "    Set welcome message"
-
+status_complete "    Configured Boot Entries"
+status_complete "    Enabled Mulitlib repos"
+status_complete "    Enabled system services"
 exit

@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 ask_yes_no() {
     local prompt="$1"
     local response
@@ -188,6 +187,11 @@ echo "3. Sway (Wayland-based tiling window manager)"
 echo "4. Hyprland (Modern tiling compositor with animations)"
 echo "5. None (Command line only)"
 echo
+echo "--------------------------------------------------------------------"
+echo
+echo "Note: Hyprland and Sway do not come with a display manager as such"
+echo "if one is desired it must be installed an configured after first boot"
+echo
 
 while true; do
     read -p "Select desktop environment (1-5): " de_choice
@@ -239,6 +243,11 @@ if [ -n "$desktop_packages" ]; then
         echo "$package" >> pkglist.txt
     done
     echo >> pkglist.txt
+fi
+
+# Append polkit agent to pkglist.txt if not already added
+if [[ "$selected_de" == "Sway" || "$selected_de" == "Hyprland" || "$selected_de" == "None" ]]; then
+    grep -qxF "polkit-gnome" pkglist.txt || echo "polkit-gnome" >> pkglist.txt
 fi
 
 # Create user configuration file
@@ -425,7 +434,7 @@ cp /root/chroot_install.sh /mnt/root/chroot_install.sh
 cp /root/user.conf /mnt/root/user.conf
 
 echo "Configuring new system root... "
-arch-chroot /mnt /root/chroot_install.sh "$selected_drive3"
+arch-chroot /mnt /root/chroot_install.sh "$selected_drive3" "$selected_drive" "$selected_drive1" "$selected_drive2"
 
 rm /mnt/root/chroot_install.sh
 echo -n "Unmounting drive... "
