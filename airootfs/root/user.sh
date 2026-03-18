@@ -2,6 +2,7 @@
 
 source /root/user.conf
 
+rfkill unblock all
 ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
 
 clear
