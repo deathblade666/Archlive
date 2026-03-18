@@ -427,12 +427,12 @@ detect_machine_type(){
 detect_cpu_and_append_ucode
 detect_machine_type
 
-
-
 phase_spinner "Optimizing Repo Mirror List" bash -c 'pacman -Sy && reflector --latest 200 --protocol http,https --sort rate --save /etc/pacman.d/mirrorlist'
+phase_spinner "Updating Arch Linux Keyring" pacman -Sy archlinux-keyring --noconfirm
 phase_spinner "Installing Base System" pacstrap /mnt $(awk '!/^#/ { gsub(/#.*/, ""); print }' pkglist.txt)
 
 genfstab -U /mnt >> /mnt/etc/fstab
+mkdir -p /mnt/root
 cp /root/user.sh /mnt/root/user.sh
 cp /root/chroot_install.sh /mnt/root/chroot_install.sh
 cp /root/user.conf /mnt/root/user.conf
