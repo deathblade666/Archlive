@@ -242,6 +242,9 @@ if [ -n "$desktop_packages" ]; then
     for package in $desktop_packages; do
         echo "$package" >> pkglist.txt
     done
+    if [ -n "$display_manager" ]; then
+        echo "$display_manager" >> pkglist.txt
+    fi
     echo >> pkglist.txt
 fi
 
