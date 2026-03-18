@@ -164,7 +164,7 @@ phase_spinner "Checking for Ethernet interface" check_ethernet
 check_wifi() {
     wifi_device=$(iw dev | awk '$1=="Interface"{print $2}')
 }
-phase_spinner "Checking for Wi-Fi interface" check_wifi
+check_wifi
 
 if [ -n "$wifi_device" ]; then
     clear
@@ -181,7 +181,7 @@ if [ -n "$wifi_device" ]; then
             scan_wifi() {
                 available_ssids=($(iwlist "$wifi_device" scan | awk -F':' '/ESSID:/ {print $2}' | sed 's/"//g' | sort -u))
             }
-            phase_spinner "Scanning for available Wi-Fi networks" scan_wifi
+            scan_wifi
 
             echo
             if [ "${#available_ssids[@]}" -eq 0 ]; then
@@ -213,31 +213,44 @@ if [ -n "$wifi_device" ]; then
             echo
 
             generate_wpa_config() {
-                wpa_passphrase "$SSID" "$WIFIPASS" > /etc/wpa_supplicant/$wifi_device.conf
+                wpa_passphrase "$SSID" "$WIFIPASS" > /etc/wpa_supplicant/wpa_supplicant.conf
             }
             phase_spinner "Generating WPA configuration" generate_wpa_config
 
             enable_wpa_service() {
-                systemctl enable wpa_supplicant@$wifi_device 2>&1 | grep -vE 'Created symlink|is not a native service'
+                systemctl enable wpa_supplicant 2>&1 | grep -vE 'Created symlink|is not a native service'
             }
             phase_spinner "Enabling WPA supplicant service" enable_wpa_service
 
             create_wifi_network() {
-                cat > /etc/systemd/network/25-wireless.network << EOF
-[Match]
-Name=$wifi_device
+              mkdir -p /etc/NetworkManager/system-connections
+    
+    cat > "/etc/NetworkManager/system-connections/$SSID.nmconnection" << EOF
+[connection]
+id=$SSID
+uuid=$(cat /proc/sys/kernel/random/uuid)
+type=wifi
+match-device=type:wifi
 
-[Link]
-RequiredForOnline=routable
+[wifi]
+mode=infrastructure
+ssid=$SSID
 
-[Network]
-DHCP=yes
-IgnoreCarrierLoss=3s
+[wifi-security]
+auth-alg=open
+key-mgmt=wpa-psk
+psk=$WIFIPASS
 
-[DHCP]
-UseDNS=true
+[ipv4]
+method=auto
+
+[ipv6]
+addr-gen-mode=default
+method=auto
 EOF
-            }
+
+    chmod 600 "/etc/NetworkManager/system-connections/$SSID.nmconnection"
+}
             phase_spinner "Creating systemd-networkd config for Wi-Fi" create_wifi_network
         fi
     else
@@ -304,7 +317,7 @@ RemainAfterExit=yes
 [Install]
 WantedBy=multi-user.target
 EOF
-    systemctl enable systemd-networkd 2>&1 | grep -vE 'Created symlink|is not a native service'
+    systemctl enable NetworkManager 2>&1 | grep -vE 'Created symlink|is not a native service'
     systemctl enable systemd-homed 2>&1 | grep -vE 'Created symlink|is not a native service'
     systemctl enable systemd-resolved 2>&1 | grep -vE 'Created symlink|is not a native service'
     systemctl enable docker 2>&1 | grep -vE 'Created symlink|is not a native service'
