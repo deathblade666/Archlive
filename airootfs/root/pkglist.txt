@@ -119,6 +119,7 @@ iw                      # Modern wireless interface configuration tool
 btrfs-progs             # Btrfs filesystem utilities (used in parent script)
 bluez
 bluez-utils
+networkmanager
 
 # dwl required
 fcft
