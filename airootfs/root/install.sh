@@ -205,7 +205,7 @@ while true; do
             ;;
         2)
             selected_de="KDE Plasma"
-            desktop_packages="plasma-meta kde-applications"
+            desktop_packages="plasma-meta kde-applications sddm-kcm"
             display_manager="sddm"
             break
             ;;
