@@ -117,6 +117,8 @@ wpa_supplicant          # WPA/WPA2/WPA3 authentication for wireless networks
 wireless_tools          # Includes iwlist for scanning Wi-Fi networks
 iw                      # Modern wireless interface configuration tool
 btrfs-progs             # Btrfs filesystem utilities (used in parent script)
+bluez
+bluez-utils
 
 # dwl required
 fcft
