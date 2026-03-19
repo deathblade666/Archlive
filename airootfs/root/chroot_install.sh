@@ -317,6 +317,7 @@ RemainAfterExit=yes
 [Install]
 WantedBy=multi-user.target
 EOF
+    systemctl enable bluetooth 2>&1 | grep -vE 'Created symlink|is not a native service'
     systemctl enable NetworkManager 2>&1 | grep -vE 'Created symlink|is not a native service'
     systemctl enable systemd-homed 2>&1 | grep -vE 'Created symlink|is not a native service'
     systemctl enable systemd-resolved 2>&1 | grep -vE 'Created symlink|is not a native service'
