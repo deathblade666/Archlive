@@ -4,7 +4,7 @@
 ## Key Features
 
 1. systemd driven
-    - systemd-networkd
+    - ~~systemd-networkd~~ for compatibility switched to NetworkManager
     - systemd-resolved
     - systemd-homed
       - home dir encryption with LUKS
@@ -25,13 +25,14 @@
       - 4 GB swap
       - BTRFS ``/``
         - ext4 Home (encrypted with LUKS)
+- [ ] Customization script (WIP)
 
 
 ## Instructions
 
 - Downlaod iso from github
 - write to bootable media
-- once the live disk is loaded just run ``./install.sh`` 
+- once the live disk is loaded and you have verified you're connected to te internet just run ``./install.sh`` 
 
 ## Build
   archiso is required and can be installed by running one of the following commands

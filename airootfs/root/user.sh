@@ -11,12 +11,12 @@ homectl create "$USERNAME" --storage=luks --shell="$SHELL" --member-of=docker --
 
 # Add to sudoers if requested
 if [ "$SUDO_ACCESS" = true ]; then
-    echo -n "Adding to sudoers... "
-    if echo "$USERNAME ALL=(ALL:ALL) ALL" >> /etc/sudoers; then
+    echo -n "Adding $USERNAME to sudoers... "
+    if echo "$USERNAME ALL=(ALL:ALL) ALL" > "/etc/sudoers.d/root_perm_$USERNAME"; then
+        chmod 440 "/etc/sudoers.d/root_perm_$USERNAME"
         echo "Done."
     else
         echo "Failed!"
-        echo "Warning: Failed to add user to sudoers."
     fi
 fi
 
