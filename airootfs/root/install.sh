@@ -439,6 +439,7 @@ mkdir -p /mnt/root
 cp /root/user.sh /mnt/root/user.sh
 cp /root/chroot_install.sh /mnt/root/chroot_install.sh
 cp /root/user.conf /mnt/root/user.conf
+cp /root/personalize.sh /mnt/root/personalize.sh
 
 echo "Configuring new system root... "
 arch-chroot /mnt /root/chroot_install.sh "$selected_drive3" "$selected_drive" "$selected_drive1" "$selected_drive2"

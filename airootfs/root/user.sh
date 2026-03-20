@@ -5,6 +5,7 @@ source /root/user.conf
 rfkill unblock all
 ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
 
+sleep 2
 clear
 homectl create "$USERNAME" --storage=luks --shell="$SHELL" --member-of=docker --disk-size="$HOME_SIZE" 
 
