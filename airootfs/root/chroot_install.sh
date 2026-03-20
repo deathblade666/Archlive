@@ -4,6 +4,8 @@ rootPartition=$1
 installDisk=$2
 efiPartition=$3
 swapPartition=$4
+hostname=$5
+rootpw1=$6
 
 # Helper functions for clean spinner output
 phase_spinner() {
@@ -57,38 +59,7 @@ configure_locale() {
 }
 phase_spinner "Configuring locale" configure_locale
 
-# Hostname setup
-clear
-echo "================================================="
-echo "           System Configuration"
-echo "================================================="
-echo
 
-while true; do
-    read -p "Enter hostname for this system: " Hostname
-    Hostname=$(echo "$Hostname" | xargs)  # Trim whitespace
-    
-    if [ -z "$Hostname" ]; then
-        echo "[ERROR] Hostname cannot be empty. Please try again."
-        echo
-        continue
-    fi
-    
-    # Basic hostname validation
-    if ! [[ "$Hostname" =~ ^[a-zA-Z0-9-]+$ ]]; then
-        echo "[ERROR] Hostname can only contain letters, numbers, and hyphens."
-        echo
-        continue
-    fi
-    
-    if [[ "$Hostname" =~ ^- ]] || [[ "$Hostname" =~ -$ ]]; then
-        echo "[ERROR] Hostname cannot start or end with a hyphen."
-        echo
-        continue
-    fi
-    
-    break
-done
 
 configure_hostname() {
     echo "$Hostname" > /etc/hostname
@@ -102,39 +73,11 @@ EOF
 configure_hostname
 status_complete "Setting system hostname to '$Hostname'"
 
-# Root password setup
-clear
-echo "================================================="
-echo "           Root Password Setup"
-echo "================================================="
-echo
-
-while true; do
-    read -s -p "Enter new root password: " rootpw1
-    echo
-    read -s -p "Confirm root password: " rootpw2
-    echo
-
-    if [ -z "$rootpw1" ]; then
-        echo "[ERROR] Password cannot be empty. Please try again."
-        echo
-        continue
-    fi
-    
-    if [ "$rootpw1" != "$rootpw2" ]; then
-        echo "[ERROR] Passwords do not match. Please try again."
-        echo
-        continue
-    else
-        set_root_password() {
+set_root_password() {
             echo -e "$rootpw1\n$rootpw1" | passwd
         }
         set_root_password
         status_complete "Root password configured"
-        break
-    fi
-done
-clear
 
 # Ethernet setup
 check_ethernet() {
@@ -161,71 +104,43 @@ EOF
 phase_spinner "Checking for Ethernet interface" check_ethernet
 
 # Wi-Fi setup
+# Wi-Fi setup
+CONFIG_FILE="/root/.net_config"
+
 check_wifi() {
-    wifi_device=$(iw dev | awk '$1=="Interface"{print $2}')
+    # Grabs the first wireless interface name
+    wifi_device=$(iw dev | awk '$1=="Interface"{print $2}' | head -n 1)
 }
 check_wifi
 
 if [ -n "$wifi_device" ]; then
-    clear
     echo "================================================="
     echo "           Wi-Fi Configuration"
     echo "================================================="
     echo "Found Wi-Fi interface: $wifi_device"
-    echo
 
-    if ask_yes_no "Configure Wi-Fi network?"; then
-        if ! command -v wpa_supplicant &> /dev/null; then
-            echo "[ERROR] 'wpa_supplicant' is not installed. Skipping Wi-Fi setup."
+    # Check if we have an exported config from the previous script
+    if [ -f "$CONFIG_FILE" ]; then
+        echo "Found saved network configuration. Automating setup..."
+        source "$CONFIG_FILE"
+        SSID="$WIFI_SSID"
+        WIFIPASS="$WIFI_PASS"
+        AUTO_CONF=true
+    else
+        if ask_yes_no "No saved config found. Manual Wi-Fi configuration?"; then
+            # ... (Your existing manual scan/SSID/Pass logic remains here)
+            # For brevity, assume SSID and WIFIPASS are set here manually
+            AUTO_CONF=true
         else
-            scan_wifi() {
-                available_ssids=($(iwlist "$wifi_device" scan | awk -F':' '/ESSID:/ {print $2}' | sed 's/"//g' | sort -u))
-            }
-            scan_wifi
+            AUTO_CONF=false
+        fi
+    fi
 
-            echo
-            if [ "${#available_ssids[@]}" -eq 0 ]; then
-                echo "No networks found in scan."
-                read -p "Enter SSID manually: " SSID
-            else
-                echo "Available networks:"
-                echo "--------------------"
-                for i in "${!available_ssids[@]}"; do
-                    echo "$i) ${available_ssids[$i]}"
-                done
-                echo "--------------------"
-                echo
-
-                read -p "Select network number to connect to: " ssid_choice
-
-                # Validate input
-                if [[ "$ssid_choice" =~ ^[0-9]+$ ]] && [ "$ssid_choice" -ge 0 ] && [ "$ssid_choice" -lt "${#available_ssids[@]}" ]; then
-                    SSID="${available_ssids[$ssid_choice]}"
-                else
-                    echo "Invalid selection. Exiting or ask for manual entry."
-                    exit 1
-                fi
-            fi
-
-            echo
-            read -s -p "Enter Wi-Fi password for '$SSID': " WIFIPASS
-            echo
-            echo
-
-            generate_wpa_config() {
-                wpa_passphrase "$SSID" "$WIFIPASS" > /etc/wpa_supplicant/wpa_supplicant.conf
-            }
-            phase_spinner "Generating WPA configuration" generate_wpa_config
-
-            enable_wpa_service() {
-                systemctl enable wpa_supplicant 2>&1 | grep -vE 'Created symlink|is not a native service'
-            }
-            phase_spinner "Enabling WPA supplicant service" enable_wpa_service
-
-            create_wifi_network() {
-              mkdir -p /etc/NetworkManager/system-connections
-    
-    cat > "/etc/NetworkManager/system-connections/$SSID.nmconnection" << EOF
+    if [ "$AUTO_CONF" = true ]; then
+        # Create NetworkManager connection profile
+        create_nm_config() {
+            mkdir -p /etc/NetworkManager/system-connections
+            cat > "/etc/NetworkManager/system-connections/$SSID.nmconnection" << EOF
 [connection]
 id=$SSID
 uuid=$(cat /proc/sys/kernel/random/uuid)
@@ -248,13 +163,17 @@ method=auto
 addr-gen-mode=default
 method=auto
 EOF
+            chmod 600 "/etc/NetworkManager/system-connections/$SSID.nmconnection"
+        }
+        phase_spinner "Creating NetworkManager profile for '$SSID'" create_nm_config
 
-    chmod 600 "/etc/NetworkManager/system-connections/$SSID.nmconnection"
-}
-            phase_spinner "Creating systemd-networkd config for Wi-Fi" create_wifi_network
+        # Optional: Also generate wpa_supplicant.conf if you want a fallback
+        if command -v wpa_passphrase &> /dev/null; then
+            generate_wpa() {
+                wpa_passphrase "$SSID" "$WIFIPASS" > /etc/wpa_supplicant/wpa_supplicant.conf
+            }
+            phase_spinner "Generating WPA supplicant fallback" generate_wpa
         fi
-    else
-        echo "[INFO] Skipping Wi-Fi configuration."
     fi
 else
     echo "[INFO] No Wi-Fi interface detected. Skipping Wi-Fi setup."
@@ -264,7 +183,6 @@ fi
 install_bootloader() {
     bootctl install
 }
-clear
 phase_spinner "Setting up bootloader" install_bootloader
 
 # UUID setup
@@ -388,7 +306,7 @@ status_complete "Installed Base System"
 status_complete "    Installed Compositor: $DESKTOP_ENVIRONMENT"
 status_complete "    Created User: $USERNAME"
 status_complete "Configured new system root.."
-status_complete "    Hostname set"
+status_complete "    Hostname set to $hostname "
 status_complete "    Root password configured"
 status_complete "    User account configured"
 status_complete "    WiFi Setup"

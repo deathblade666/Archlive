@@ -1,5 +1,105 @@
 #!/bin/bash
 
+clear
+rfkill unblock all
+
+# Configuration file path
+CONFIG_FILE=".net_config"
+
+check_internet() {
+    ping -q -c 1 -W 1 8.8.8.8 >/dev/null 2>&1
+}
+
+get_wifi_device() {
+    iw dev | awk '$1=="Interface"{print $2}'
+}
+
+echo "Checking internet connection..."
+
+if check_internet; then
+    echo "Check passed: You are online."
+else
+    echo "No internet connection detected."
+    
+    DEVICE=$(get_wifi_device)
+    if [ -z "$DEVICE" ]; then
+        echo "Error: No WiFi adapter detected. Wired connection required."
+        exit 1
+    fi
+    read -p "Connect to WiFi now? (y/n): " choice
+    if [[ ! "$choice" =~ ^[Yy]$ ]]; then
+        echo "Process aborted."
+        exit 1
+    fi
+
+    while true; do
+        echo "Scanning for networks on $DEVICE..."
+        iwctl station "$DEVICE" scan
+        sleep 2 
+        clear
+        echo "--- Available Networks ---"
+        # Extract SSIDs into an array
+        mapfile -t networks < <(iwctl station "$DEVICE" get-networks | sed 's/\x1b\[[0-9;]*m//g' | awk 'NR>4 {print substr($0, 1, 32)}' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
+
+        if [ ${#networks[@]} -eq 0 ]; then
+	          clear
+            echo "No networks found. Retrying scan..."
+            continue
+        fi
+
+        for i in "${!networks[@]}"; do
+            printf "%2d) %s\n" "$((i+1))" "${networks[$i]}"
+        done
+        echo " q) Quit"
+
+        read -p "Select a network (1-${#networks[@]}): " selection
+        [[ "$selection" == "q" ]] && exit 1
+
+        if [[ "$selection" =~ ^[0-9]+$ ]] && [ "$selection" -ge 1 ] && [ "$selection" -le "${#networks[@]}" ]; then
+            selected_ssid="${networks[$((selection-1))]}"
+	    clear
+            read -s -p "Enter Password for $selected_ssid: " password
+            echo -e "\nAttempting to connect..."
+
+            if iwctl station "$DEVICE" connect "$selected_ssid" --passphrase "$password"; then
+                echo "Verifying internet access..."
+                
+                SUCCESS=false
+                for i in {1..5}; do
+                    sleep 2
+                    if check_internet; then
+                        SUCCESS=true
+                        break
+                    fi
+                done
+
+                if [ "$SUCCESS" = true ]; then
+                    echo "Successfully connected!"
+                    
+                    # --- Exporting Configuration ---
+                    echo "Saving configuration to $CONFIG_FILE..."
+                    cat <<EOF > "$CONFIG_FILE"
+WIFI_INTERFACE="$DEVICE"
+WIFI_SSID="$selected_ssid"
+WIFI_PASS="$password"
+EOF
+                    # Restrict permissions since it contains a password
+                    chmod 600 "$CONFIG_FILE"
+                    break 
+                else
+                    echo "!! Connected to WiFi, but no internet access detected."
+                fi
+            else
+                echo "!! Connection failed. Check your password."
+            fi
+        else
+            echo "!! Invalid selection."
+        fi
+    done
+fi
+
+clear
+
 ask_yes_no() {
     local prompt="$1"
     local response
@@ -258,6 +358,67 @@ DESKTOP_ENVIRONMENT="$selected_de"
 DISPLAY_MANAGER="$display_manager"
 EOF
 
+# Hostname setup
+clear
+echo "================================================="
+echo "           System Configuration"
+echo "================================================="
+echo
+
+while true; do
+    read -p "Enter hostname for this system: " Hostname
+    Hostname=$(echo "$Hostname" | xargs)  # Trim whitespace
+    
+    if [ -z "$Hostname" ]; then
+        echo "[ERROR] Hostname cannot be empty. Please try again."
+        echo
+        continue
+    fi
+    
+    # Basic hostname validation
+    if ! [[ "$Hostname" =~ ^[a-zA-Z0-9-]+$ ]]; then
+        echo "[ERROR] Hostname can only contain letters, numbers, and hyphens."
+        echo
+        continue
+    fi
+    
+    if [[ "$Hostname" =~ ^- ]] || [[ "$Hostname" =~ -$ ]]; then
+        echo "[ERROR] Hostname cannot start or end with a hyphen."
+        echo
+        continue
+    fi
+    
+    break
+done
+
+# Root password setup
+clear
+echo "================================================="
+echo "           Root Password Setup"
+echo "================================================="
+echo
+
+while true; do
+    read -s -p "Enter new root password: " rootpw1
+    echo
+    read -s -p "Confirm root password: " rootpw2
+    echo
+
+    if [ -z "$rootpw1" ]; then
+        echo "[ERROR] Password cannot be empty. Please try again."
+        echo
+        continue
+    fi
+    
+    if [ "$rootpw1" != "$rootpw2" ]; then
+        echo "[ERROR] Passwords do not match. Please try again."
+        echo
+    fi
+    if [ "$rootpw1" == "$rootpw2" ]; then
+        break
+    fi
+done
+
 clear
 echo "================================================="
 echo "           Beginning Installation"
@@ -440,11 +601,13 @@ cp /root/user.sh /mnt/root/user.sh
 cp /root/chroot_install.sh /mnt/root/chroot_install.sh
 cp /root/user.conf /mnt/root/user.conf
 cp /root/personalize.sh /mnt/root/personalize.sh
+cp /root/.net_config /mnt/root/.net_config
 
 echo "Configuring new system root... "
-arch-chroot /mnt /root/chroot_install.sh "$selected_drive3" "$selected_drive" "$selected_drive1" "$selected_drive2"
+arch-chroot /mnt /root/chroot_install.sh "$selected_drive3" "$selected_drive" "$selected_drive1" "$selected_drive2" "$Hostname" "$rootpw1"
 
 rm /mnt/root/chroot_install.sh
+rm /mnt/root/.net_config
 echo -n "Unmounting drive... "
 umount /mnt/boot
 umount /mnt
