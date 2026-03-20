@@ -20,6 +20,14 @@ if [ "$SUDO_ACCESS" = true ]; then
     fi
 fi
 
+TARGET_SCRIPT="/root/personalize.sh"
+
+# Check if the file exists
+if [[ -f "$TARGET_SCRIPT" ]]; then
+    chmod +x $TARGET_SCRIPT
+fi
+
+
 # Final cleanup
 systemctl disable first-boot.service
 rm /etc/systemd/system/first-boot.service
