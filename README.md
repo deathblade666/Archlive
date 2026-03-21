@@ -8,7 +8,7 @@
     - systemd-resolved
     - systemd-homed
       - home dir encryption with LUKS
-2. Custom easily modify installed packages
+2. easily add your desired packages!
     - modify the pklist.txt to suite your needs
     - can include comments denoted by ``#`` for organization
 3. compositor selection menu
@@ -16,11 +16,11 @@
 5. minimal install
     - only a handful of applications are installed out the box
 6. Linux-Zen kernel for increase responsiveness
-7. btrfs ``/`` partition by defult
+7. btrfs ``/`` partition by default
 
 ## Furture Improvments
 - [ ] custom partition
-    - currently its set to a defult of 
+    - currently its set to a default of 
       - 1GB EFI
       - 4 GB swap
       - BTRFS ``/``
@@ -30,7 +30,7 @@
 
 ## Instructions
 
-- Downlaod iso from github
+- Download iso from github
 - write to bootable media
 - once the live disk is loaded and you have verified you're connected to te internet just run ``./install.sh`` 
 
