@@ -231,6 +231,7 @@ EOF
     systemctl enable NetworkManager 2>&1 | grep -vE 'Created symlink|is not a native service'
     systemctl enable systemd-homed 2>&1 | grep -vE 'Created symlink|is not a native service'
     systemctl enable systemd-resolved 2>&1 | grep -vE 'Created symlink|is not a native service'
+    systemctl enable cups 2>&1 | grep -vE 'Created symlink|is not a native service'
     systemctl enable docker 2>&1 | grep -vE 'Created symlink|is not a native service'
     systemctl enable first-boot 2>&1 | grep -vE 'Created symlink|is not a native service'
     systemctl mask getty@tty1.service 
@@ -314,5 +315,6 @@ status_complete "        NetworkManager Enabled!"
 status_complete "        Systemd-Homed Enabled!"
 status_complete "        Systemd-Resolved Enabled!"
 status_complete "        Docker Enabled!"
+status_complete "        Cups Enabled!"
 status_complete "Power Management Profile Set"
 exit

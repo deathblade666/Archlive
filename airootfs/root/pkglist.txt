@@ -133,3 +133,4 @@ grim
 
 # Printer utils
 system-config-printer
+cups
