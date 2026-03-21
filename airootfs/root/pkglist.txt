@@ -131,4 +131,5 @@ slurp
 wl-clipboard
 grim
 
-
+# Printer utils
+system-config-printer
