@@ -4,7 +4,7 @@ rootPartition=$1
 installDisk=$2
 efiPartition=$3
 swapPartition=$4
-hostname=$5
+Hostname=$5
 rootpw1=$6
 
 # Helper functions for clean spinner output
@@ -301,7 +301,7 @@ status_complete "    Installed Compositor: $DESKTOP_ENVIRONMENT"
 status_complete "    Created User: $USERNAME"
 status_complete "fstab generated"
 status_complete "Configured new system root.."
-status_complete "    Hostname set to $hostname "
+status_complete "    Hostname set to $Hostname "
 status_complete "    Root password configured"
 status_complete "    User account configured"
 status_complete "    WiFi Setup"
