@@ -32,7 +32,7 @@
 
 - Download iso from github
 - write to bootable media
-- once the live disk is loaded and you have verified you're connected to te internet just run ``./install.sh`` 
+- once the live disk is loaded just run ``./install.sh`` 
 
 ## Build
   archiso is required and can be installed by running one of the following commands
