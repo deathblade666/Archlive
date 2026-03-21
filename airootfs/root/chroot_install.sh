@@ -126,14 +126,6 @@ if [ -n "$wifi_device" ]; then
         SSID="$WIFI_SSID"
         WIFIPASS="$WIFI_PASS"
         AUTO_CONF=true
-    else
-        if ask_yes_no "No saved config found. Manual Wi-Fi configuration?"; then
-            # ... (Your existing manual scan/SSID/Pass logic remains here)
-            # For brevity, assume SSID and WIFIPASS are set here manually
-            AUTO_CONF=true
-        else
-            AUTO_CONF=false
-        fi
     fi
 
     if [ "$AUTO_CONF" = true ]; then
@@ -286,7 +278,7 @@ echo "================================================="
 echo
 echo "Operations performed on $installDisk:"
 echo "-------------------------------------------------"
-status_complete "Deleting existing partitions"
+status_complete "Deleted existing partitions"
 status_complete "partitioned $installDisk"  
 status_complete "    EFI: 1GB | Swap: 4GB | Root: rest of disk"
 status_complete "Formated $efiPartition"
@@ -302,16 +294,25 @@ status_complete "    $efiPartition mounted to /mnt/boot"
 status_complete "Activated swap"
 status_complete "    swap activated"
 status_complete "Optimized Repo Mirror List"
+status_complete "Updated Arch Linux Keyring"
 status_complete "Installed Base System"
 status_complete "    Installed Compositor: $DESKTOP_ENVIRONMENT"
 status_complete "    Created User: $USERNAME"
+status_complete "fstab generated"
 status_complete "Configured new system root.."
 status_complete "    Hostname set to $hostname "
 status_complete "    Root password configured"
 status_complete "    User account configured"
 status_complete "    WiFi Setup"
+status_complete "        Connection to $SSID configured"
 status_complete "    Bootloader setup"
 status_complete "    Configured Boot Entries"
 status_complete "    Enabled Mulitlib repos"
 status_complete "    Enabled system services"
+status_complete "        Bluetooth Enabled!"
+status_complete "        NetworkManager Enabled!"
+status_complete "        Systemd-Homed Enabled!"
+status_complete "        Systemd-Resolved Enabled!"
+status_complete "        Docker Enabled!"
+status_complete "Power Management Profile Set"
 exit

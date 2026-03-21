@@ -614,4 +614,8 @@ umount /mnt
 swapoff "$selected_drive2"
 echo "Done."
 echo "System configured... Done."
-echo "Reboot your system to setup user accounts!"
+if ask_yes_no "Reboot your system to setup user accounts! Would you like to restart now?"; then
+    reboot
+else
+    exit
+fi
