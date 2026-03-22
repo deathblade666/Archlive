@@ -391,6 +391,85 @@ while true; do
     break
 done
 
+select_timezone() {
+    # Step 1: Select region
+    regions=($(timedatectl list-timezones | cut -d'/' -f1 | sort -u))
+
+    echo "Select your region:"
+    select region in "${regions[@]}"; do
+        [[ -n "$region" ]] && break
+    done
+
+    # Step 2: Select city within region
+    cities=($(timedatectl list-timezones | grep "^$region/" | cut -d'/' -f2-))
+
+    echo "Select your city:"
+    select city in "${cities[@]}"; do
+        [[ -n "$city" ]] && break
+    done
+
+    timezone="$region/$city"
+
+    # Step 3: Confirmation
+    if ask_yes_no "Confirm timezone '$timezone'?"; then
+        echo "Timezone confirmed: $timezone"
+        SELECTED_TIMEZONE="$timezone"
+    else
+        echo "Okay, let's try again."
+        select_timezone   # restart selection
+    fi
+}
+
+# Call the function
+select_timezone
+
+print_columns() {
+    local -n arr=$1
+    local cols=3
+    local width=25
+    local count=${#arr[@]}
+
+    for ((i=0; i<count; i+=cols)); do
+        printf "%-4s %-*s" "$((i+1))." "$width" "${arr[i]}"
+        if (( i+1 < count )); then
+            printf "%-4s %-*s" "$((i+2))." "$width" "${arr[i+1]}"
+        fi
+        if (( i+2 < count )); then
+            printf "%-4s %-*s" "$((i+3))." "$width" "${arr[i+2]}"
+        fi
+        echo
+    done
+}
+
+select_locale() {
+    # Get list of UTF-8 locales and normalize to uppercase UTF-8
+    locales=($(locale -a | grep -i utf | sort | sed 's/\.utf8$/.UTF-8/I'))
+
+    echo "Select your locale:"
+    print_columns locales
+
+    # Manual numeric selection
+    while true; do
+        read -p "#? " choice
+        if [[ "$choice" =~ ^[0-9]+$ ]] && (( choice >= 1 && choice <= ${#locales[@]} )); then
+            locale="${locales[choice-1]}"
+            break
+        else
+            echo "Invalid selection."
+        fi
+    done
+
+    if ask_yes_no "Confirm locale '$locale'?"; then
+        echo "Locale confirmed: $locale"
+        SELECTED_LOCALE="$locale"
+    else
+        echo "Okay, let's try again."
+        select_locale
+    fi
+}
+
+select_locale
+
 # Root password setup
 clear
 echo "================================================="
@@ -604,7 +683,7 @@ cp /root/personalize.sh /mnt/root/personalize.sh
 cp /root/.net_config /mnt/root/.net_config
 
 echo "Configuring new system root... "
-arch-chroot /mnt /root/chroot_install.sh "$selected_drive3" "$selected_drive" "$selected_drive1" "$selected_drive2" "$Hostname" "$rootpw1"
+arch-chroot /mnt /root/chroot_install.sh "$selected_drive3" "$selected_drive" "$selected_drive1" "$selected_drive2" "$Hostname" "$rootpw1" "$timezone" "$locale"
 
 rm /mnt/root/chroot_install.sh
 rm /mnt/root/.net_config

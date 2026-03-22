@@ -6,6 +6,8 @@ efiPartition=$3
 swapPartition=$4
 Hostname=$5
 rootpw1=$6
+timezone=$7
+locale=$8
 
 # Helper functions for clean spinner output
 phase_spinner() {
@@ -50,12 +52,12 @@ ask_yes_no() {
 
 # Locale setup
 configure_locale() {
-    ln -sf /usr/share/zoneinfo/America/New_York /etc/localtime
+    ln -sf /usr/share/zoneinfo/$timezone /etc/localtime
     hwclock --systohc
-    echo en_US.UTF-8 UTF-8 >> /etc/locale.gen
+    echo $locale UTF-8 >> /etc/locale.gen
     locale-gen
-    echo LANG=en_US.UTF-8 > /etc/locale.conf
-    export LANG=en_US.UTF-8
+    echo LANG=$locale > /etc/locale.conf
+    export LANG=$locale
 }
 phase_spinner "Configuring locale" configure_locale
 
