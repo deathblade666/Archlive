@@ -587,16 +587,14 @@ run_multiphase() {
     phase_spinner "Mounting EFI partition" mount_efi
     phase_spinner "Activating swap" activate_swap
 }
-run_multiphase
 
-sed -i -e '/#\[multilib\]/,+1s/^#//' /etc/pacman.conf
 
 detect_gpu_and_append_pkg() {
     gpu_info=$(lspci | grep -i 'vga\|3d\|2d')
     pkglist_file="pkglist.txt"
 
     if echo "$gpu_info" | grep -qi nvidia; then
-        echo "NVIDIA GPU detected."
+        gpu_type="NVIDIA GPU detected."
         {
             echo "# GPU Drivers: NVIDIA"
             echo "nvidia-dkms"
@@ -607,7 +605,7 @@ detect_gpu_and_append_pkg() {
         } >> "$pkglist_file"
 
     elif echo "$gpu_info" | grep -qi amd; then
-        echo "AMD GPU detected."
+        gpu_type="AMD GPU detected."
         {
             echo "# GPU Drivers: AMD"
             echo "xf86-video-amdgpu"
@@ -617,7 +615,7 @@ detect_gpu_and_append_pkg() {
         } >> "$pkglist_file"
 
     elif echo "$gpu_info" | grep -qi intel; then
-        echo "Intel integrated graphics detected."
+        gpu_type="Intel integrated graphics detected."
         {
             echo "# GPU Drivers: Intel"
             echo "xf86-video-intel"
@@ -628,11 +626,9 @@ detect_gpu_and_append_pkg() {
         } >> "$pkglist_file"
 
     else
-        echo "No recognizable GPU found. Skipping package append."
+        gpu_type="No recognizable GPU found. Skipping package append."
     fi
 }
-
-detect_gpu_and_append_pkg
 
 detect_cpu_and_append_ucode() {
     cpu_vendor=$(lscpu | grep -i 'vendor' | awk '{print $NF}')
@@ -640,7 +636,7 @@ detect_cpu_and_append_ucode() {
 
     case "$cpu_vendor" in
         GenuineIntel)
-            echo "Intel CPU detected."
+            cpu_type="Intel CPU Detected"
             {
                 echo "# CPU Microcode: Intel"
                 echo "intel-ucode"
@@ -648,7 +644,7 @@ detect_cpu_and_append_ucode() {
             } >> "$pkglist_file"
             ;;
         AuthenticAMD)
-            echo "AMD CPU detected."
+            cpu_type="AMD CPU Detected"
             {
                 echo "# CPU Microcode: AMD"
                 echo "amd-ucode"
@@ -656,7 +652,7 @@ detect_cpu_and_append_ucode() {
             } >> "$pkglist_file"
             ;;
         *)
-            echo "Unknown CPU vendor. Skipping microcode package."
+            cpu_type="Unknown CPU vendor. Skipping microcode package."
             ;;
     esac
 }
@@ -667,30 +663,84 @@ detect_machine_type(){
         echo tlp >> pkglist.txt
     fi
 }
-detect_cpu_and_append_ucode
-detect_machine_type
 
+check_pacstrap() {
+    local target="$1"
+
+    # 1. Check exit code of pacstrap
+    if [[ "$PACSTRAP_EXIT" -ne 0 ]]; then
+        echo "❌ pacstrap failed with exit code $PACSTRAP_EXIT"
+        exit 1
+    fi
+
+    # 2. Check that essential directories exist
+    local required_dirs=(
+        "$target/bin"
+        "$target/usr"
+        "$target/etc"
+        "$target/var"
+    )
+
+    for d in "${required_dirs[@]}"; do
+        if [[ ! -d "$d" ]]; then
+            echo "❌ pacstrap incomplete: missing $d"
+            exit 1
+        fi
+    done
+
+    # 3. Check that pacman database exists
+    if [[ ! -d "$target/var/lib/pacman/local" ]]; then
+        echo "❌ pacstrap incomplete: pacman DB missing"
+        exit 1
+    fi
+}
+
+install_base_system() {
+    pacstrap /mnt $(awk '!/^#/ { gsub(/#.*/, ""); print }' pkglist.txt)
+    PACSTRAP_EXIT=$?
+    check_pacstrap /mnt
+}
+
+gen_fstab() {
+    genfstab -U /mnt >> /mnt/etc/fstab
+}
+
+move_files_to_chroot() {
+    mkdir -p /mnt/root
+    cp /root/user.sh /mnt/root/user.sh
+    cp /root/chroot_install.sh /mnt/root/chroot_install.sh
+    cp /root/user.conf /mnt/root/user.conf
+    cp /root/personalize.sh /mnt/root/personalize.sh
+    cp /root/.net_config /mnt/root/.net_config
+}
+
+cleanup() {
+    rm /mnt/root/chroot_install.sh
+    rm /mnt/root/.net_config
+    echo -n "Unmounting drive... "
+    umount /mnt/boot
+    umount /mnt
+    swapoff "$selected_drive2"
+}
+
+run_multiphase
+phase_spinner "Enable Multi-lib repos" sed -i -e '/#\[multilib\]/,+1s/^#//' /etc/pacman.conf
+phase_spinner "Detecting GPU" detect_gpu_and_append_pkg
+echo $gpu_type
+phase_spinner "Detecting CPU" detect_cpu_and_append_ucode
+echo $cpu_type
+phase_spinner "Detecting Form Factor" detect_machine_type
+echo $system_type
 phase_spinner "Optimizing Repo Mirror List" bash -c 'pacman -Sy && reflector --latest 200 --protocol http,https --sort rate --save /etc/pacman.d/mirrorlist'
 phase_spinner "Updating Arch Linux Keyring" pacman -Sy archlinux-keyring --noconfirm
-phase_spinner "Installing Base System" pacstrap /mnt $(awk '!/^#/ { gsub(/#.*/, ""); print }' pkglist.txt)
-
-genfstab -U /mnt >> /mnt/etc/fstab
-mkdir -p /mnt/root
-cp /root/user.sh /mnt/root/user.sh
-cp /root/chroot_install.sh /mnt/root/chroot_install.sh
-cp /root/user.conf /mnt/root/user.conf
-cp /root/personalize.sh /mnt/root/personalize.sh
-cp /root/.net_config /mnt/root/.net_config
+phase_spinner "Installing Base System" install_base_system
+phase_spinner "Generatiing default fstab" gen_fstab
+phase_spinner "Copying file to new system" move_files_to_chroot
 
 echo "Configuring new system root... "
 arch-chroot /mnt /root/chroot_install.sh "$selected_drive3" "$selected_drive" "$selected_drive1" "$selected_drive2" "$Hostname" "$rootpw1" "$timezone" "$locale"
 
-rm /mnt/root/chroot_install.sh
-rm /mnt/root/.net_config
-echo -n "Unmounting drive... "
-umount /mnt/boot
-umount /mnt
-swapoff "$selected_drive2"
+
 echo "Done."
 echo "System configured... Done."
 if ask_yes_no "Reboot your system to setup user accounts! Would you like to restart now?"; then
