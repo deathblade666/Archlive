@@ -31,26 +31,10 @@ phase_spinner() {
     return $exit_code
 }
 
-# For non-spinner tasks that complete immediately
 status_complete() {
     printf "%s... Done.\n" "$1"
 }
 
-# Helper function for yes/no prompts
-ask_yes_no() {
-    local prompt="$1"
-    local response
-    while true; do
-        read -p "$prompt (y/n): " response
-        case "$response" in
-            [Yy]|[Yy][Ee][Ss]) return 0 ;;
-            [Nn]|[Nn][Oo]) return 1 ;;
-            *) echo "Please answer yes or no." ;;
-        esac
-    done
-}
-
-# Locale setup
 configure_locale() {
     ln -sf /usr/share/zoneinfo/$timezone /etc/localtime
     hwclock --systohc
