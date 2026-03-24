@@ -1,5 +1,60 @@
 #!/bin/bash
 
+phase_spinner() {
+    local message=$1
+    shift
+
+    echo -n "$message... "
+    "$@" &> /dev/null & local pid=$!
+
+    local spinstr='|/-\\'
+    local i=0
+
+    while kill -0 $pid 2>/dev/null; do
+        printf "\r%s... [%c]  " "$message" "${spinstr:i++%${#spinstr}:1}"
+        sleep 0.1
+    done
+
+    wait $pid
+    local exit_code=$?
+    printf "\r%s... Done.\n" "$message"
+    return $exit_code
+}
+
+ask_yes_no() {
+    local prompt="$1"
+    local response
+    while true; do
+        read -p "$prompt (y/n): " response
+        # Trim whitespace and convert to lowercase
+        response=$(echo "$response" | xargs | tr '[:upper:]' '[:lower:]')
+        
+        case "$response" in
+            y|yes) return 0 ;;
+            n|no)  return 1 ;;
+            *)     echo "Please answer yes (y) or no (n)." ;;
+        esac
+    done
+}
+
+print_columns() {
+    local -n arr=$1
+    local offset=${2:-1}
+    local cols=3
+    local width=25
+    local count=${#arr[@]}
+
+    for ((i=0; i<count; i+=cols)); do
+        for ((j=0; j<cols; j++)); do
+            local idx=$((i + j))
+            if (( idx < count )); then
+                printf "%-4s %-*s" "$((idx + offset))." "$width" "${arr[idx]}"
+            fi
+        done
+        echo
+    done
+}
+
 clear
 rfkill unblock all
 
@@ -100,22 +155,6 @@ EOF
     fi
 
     clear
-}
-
-ask_yes_no() {
-    local prompt="$1"
-    local response
-    while true; do
-        read -p "$prompt (y/n): " response
-        # Trim whitespace and convert to lowercase
-        response=$(echo "$response" | xargs | tr '[:upper:]' '[:lower:]')
-        
-        case "$response" in
-            y|yes) return 0 ;;
-            n|no)  return 1 ;;
-            *)     echo "Please answer yes (y) or no (n)." ;;
-        esac
-    done
 }
 
 echo "[$(date)] Starting Arch Linux installation..."
@@ -440,6 +479,7 @@ select_timezone() {
     timezone="$region/$city"
 
     # Step 3: Confirmation
+    clear
     if ask_yes_no "Confirm timezone '$timezone'?"; then
         echo "Timezone confirmed: $timezone"
         SELECTED_TIMEZONE="$timezone"
@@ -499,6 +539,7 @@ select_locale() {
             *)
                 if [[ "$choice" =~ ^[0-9]+$ ]] && (( choice >= 1 && choice <= total_locales )); then
                     SELECTED_LOCALE="${locales[choice-1]}"
+                    clear
                     if ask_yes_no "Confirm '$SELECTED_LOCALE'?"; then
                         locale=$SELECTED_LOCALE
                         return 0
@@ -509,24 +550,6 @@ select_locale() {
                 fi
                 ;;
         esac
-    done
-}
-
-print_columns() {
-    local -n arr=$1
-    local offset=${2:-1}
-    local cols=3
-    local width=25
-    local count=${#arr[@]}
-
-    for ((i=0; i<count; i+=cols)); do
-        for ((j=0; j<cols; j++)); do
-            local idx=$((i + j))
-            if (( idx < count )); then
-                printf "%-4s %-*s" "$((idx + offset))." "$width" "${arr[idx]}"
-            fi
-        done
-        echo
     done
 }
 
@@ -562,16 +585,21 @@ root_passwd() {
 config_header() {
     clear
     echo "================================================="
-    echo "           Beginning Installation"
+    echo "              Installation Summary"
     echo "================================================="
+    echo "           Configured System Information:"
     echo "Target Drive: $selected_drive"
     if [ "$selected_de" != "None" ]; then
         echo "Desktop Environment: $selected_de"
     fi
     echo "TimeZone: $timezone"
     echo "Locale: $locale"
-    echo "================================================="
-    echo
+    echo "          Configured User Information:"
+    echo "Username: $User"
+    echo "Home Size: $home_size"
+    echo "Shell: $Setshell"
+    echo "Sudo access: $sudo_access"
+    echo "-------------------------------------------------"
 
     partitions=$(lsblk -ln -o NAME | grep "^$(basename "$selected_drive")" | grep -o '[0-9]*$')
     fdisk_cmd=""
@@ -579,27 +607,6 @@ config_header() {
         fdisk_cmd+="d\n$p\n"
     done
     fdisk_cmd+="w\n"
-}
-
-phase_spinner() {
-    local message=$1
-    shift
-
-    echo -n "$message... "
-    "$@" &> /dev/null & local pid=$!
-
-    local spinstr='|/-\\'
-    local i=0
-
-    while kill -0 $pid 2>/dev/null; do
-        printf "\r%s... [%c]  " "$message" "${spinstr:i++%${#spinstr}:1}"
-        sleep 0.1
-    done
-
-    wait $pid
-    local exit_code=$?
-    printf "\r%s... Done.\n" "$message"
-    return $exit_code
 }
 
 run_multiphase() {
@@ -805,16 +812,12 @@ phase_spinner "Optimizing Repo Mirror List" bash -c 'pacman -Sy && reflector --l
 phase_spinner "Updating Arch Linux Keyring" pacman -Sy archlinux-keyring --noconfirm
 phase_spinner "Installing Base System" install_base_system
 phase_spinner "Generatiing default fstab" gen_fstab
-phase_spinner "Copying file to new system" move_files_to_chroot
-
-echo "Configuring new system root... "
-arch-chroot /mnt /root/chroot_install.sh "$selected_drive3" "$selected_drive" "$selected_drive1" "$selected_drive2" "$Hostname" "$rootpw1" "$timezone" "$locale"
-
-
-echo "Done."
+phase_spinner "Copying files to new system" move_files_to_chroot
+phase_spinner "Configuring new system root... " arch-chroot /mnt /root/chroot_install.sh "$selected_drive3" "$selected_drive" "$selected_drive1" "$selected_drive2" "$Hostname" "$rootpw1" "$timezone" "$locale"
+phase_spinner "Unmounting drive" cleanup
 echo "System configured... Done."
 if ask_yes_no "Reboot your system to setup user accounts! Would you like to restart now?"; then
-    reboot
+    systemctl reboot
 else
     exit
 fi

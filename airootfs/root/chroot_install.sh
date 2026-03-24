@@ -8,28 +8,7 @@ Hostname=$5
 rootpw1=$6
 timezone=$7
 locale=$8
-
-# Helper functions for clean spinner output
-phase_spinner() {
-    local message=$1
-    shift
-
-    echo -n "$message... "
-    "$@" &> /dev/null & local pid=$!
-
-    local spinstr='|/-\\'
-    local i=0
-
-    while kill -0 $pid 2>/dev/null; do
-        printf "\r%s... [%c]  " "$message" "${spinstr:i++%${#spinstr}:1}"
-        sleep 0.1
-    done
-
-    wait $pid
-    local exit_code=$?
-    printf "\r%s... Done.\n" "$message"
-    return $exit_code
-}
+CONFIG_FILE="/root/.net_config"
 
 status_complete() {
     printf "%s... Done.\n" "$1"
@@ -43,9 +22,6 @@ configure_locale() {
     echo LANG=$locale > /etc/locale.conf
     export LANG=$locale
 }
-phase_spinner "Configuring locale" configure_locale
-
-
 
 configure_hostname() {
     echo "$Hostname" > /etc/hostname
@@ -56,14 +32,10 @@ configure_hostname() {
 EOF
 }
 
-configure_hostname
-status_complete "Setting system hostname to '$Hostname'"
-
 set_root_password() {
-            echo -e "$rootpw1\n$rootpw1" | passwd
-        }
-        set_root_password
-        status_complete "Root password configured"
+    echo -e "$rootpw1\n$rootpw1" | passwd
+    clear
+}
 
 # Ethernet setup
 check_ethernet() {
@@ -87,38 +59,31 @@ EOF
         echo "No Ethernet interface detected. Skipping Ethernet setup." >&2
     fi
 }
-phase_spinner "Checking for Ethernet interface" check_ethernet
-
-# Wi-Fi setup
-# Wi-Fi setup
-CONFIG_FILE="/root/.net_config"
 
 check_wifi() {
     # Grabs the first wireless interface name
     wifi_device=$(iw dev | awk '$1=="Interface"{print $2}' | head -n 1)
-}
-check_wifi
 
-if [ -n "$wifi_device" ]; then
-    echo "================================================="
-    echo "           Wi-Fi Configuration"
-    echo "================================================="
-    echo "Found Wi-Fi interface: $wifi_device"
+    if [ -n "$wifi_device" ]; then
+        echo "================================================="
+        echo "           Wi-Fi Configuration"
+        echo "================================================="
+        echo "Found Wi-Fi interface: $wifi_device"
 
-    # Check if we have an exported config from the previous script
-    if [ -f "$CONFIG_FILE" ]; then
-        echo "Found saved network configuration. Automating setup..."
-        source "$CONFIG_FILE"
-        SSID="$WIFI_SSID"
-        WIFIPASS="$WIFI_PASS"
-        AUTO_CONF=true
-    fi
+        # Check if we have an exported config from the previous script
+        if [ -f "$CONFIG_FILE" ]; then
+            echo "Found saved network configuration. Automating setup..."
+            source "$CONFIG_FILE"
+            SSID="$WIFI_SSID"
+            WIFIPASS="$WIFI_PASS"
+            AUTO_CONF=true
+        fi
 
-    if [ "$AUTO_CONF" = true ]; then
-        # Create NetworkManager connection profile
-        create_nm_config() {
-            mkdir -p /etc/NetworkManager/system-connections
-            cat > "/etc/NetworkManager/system-connections/$SSID.nmconnection" << EOF
+        if [ "$AUTO_CONF" = true ]; then
+            # Create NetworkManager connection profile
+            create_nm_config() {
+                mkdir -p /etc/NetworkManager/system-connections
+                cat > "/etc/NetworkManager/system-connections/$SSID.nmconnection" << EOF
 [connection]
 id=$SSID
 uuid=$(cat /proc/sys/kernel/random/uuid)
@@ -141,27 +106,26 @@ method=auto
 addr-gen-mode=default
 method=auto
 EOF
-            chmod 600 "/etc/NetworkManager/system-connections/$SSID.nmconnection"
-        }
-        phase_spinner "Creating NetworkManager profile for '$SSID'" create_nm_config
-
-        # Optional: Also generate wpa_supplicant.conf if you want a fallback
-        if command -v wpa_passphrase &> /dev/null; then
-            generate_wpa() {
-                wpa_passphrase "$SSID" "$WIFIPASS" > /etc/wpa_supplicant/wpa_supplicant.conf
+                chmod 600 "/etc/NetworkManager/system-connections/$SSID.nmconnection"
             }
-            phase_spinner "Generating WPA supplicant fallback" generate_wpa
-        fi
-    fi
-else
-    echo "[INFO] No Wi-Fi interface detected. Skipping Wi-Fi setup."
-fi
+            create_nm_config
 
+            # Optional: Also generate wpa_supplicant.conf if you want a fallback
+            if command -v wpa_passphrase &> /dev/null; then
+                generate_wpa() {
+                    wpa_passphrase "$SSID" "$WIFIPASS" > /etc/wpa_supplicant/wpa_supplicant.conf
+                }
+                generate_wpa
+            fi
+        fi
+    else
+        echo "[INFO] No Wi-Fi interface detected. Skipping Wi-Fi setup."
+    fi
+}
 # Bootloader setup
 install_bootloader() {
     bootctl install
 }
-phase_spinner "Setting up bootloader" install_bootloader
 
 # UUID setup
 configure_boot_entries() {
@@ -180,13 +144,12 @@ options root=UUID=$uuid rw
 EOF
     bootctl update
 }
-phase_spinner "Configuring boot entries" configure_boot_entries
 
 # Enable Multilib
 enable_multilib() {
     sed -i -e '/#\[multilib\]/,+1s/^#//' /etc/pacman.conf
 }
-phase_spinner "Enabling Multilib repository" enable_multilib
+
 
 # Enable services
 enable_system_services() {
@@ -253,54 +216,14 @@ DISK_APM_LEVEL_ON_AC="254 254"
 EOF
         systemctl enable tlp.service
 }
-phase_spinner "Enabling system services" enable_system_services
 
-source /root/user.conf
-
-
-clear
-echo "================================================="
-echo "           Installation Summary"
-echo "================================================="
-echo
-echo "Operations performed on $installDisk:"
-echo "-------------------------------------------------"
-status_complete "Deleted existing partitions"
-status_complete "partitioned $installDisk"  
-status_complete "    EFI: 1GB | Swap: 4GB | Root: rest of disk"
-status_complete "Formated $efiPartition"
-status_complete "    EFI: FAT-32"
-status_complete "Formated $rootPartition"
-status_complete "    Root: btrfs"
-status_complete "Formated $swapPartition"
-status_complete "    Swap: swap"
-status_complete "Mounted root partition"
-status_complete "    $rootPartition mounted to /mnt"
-status_complete "Mounted EFI partition"
-status_complete "    $efiPartition mounted to /mnt/boot"
-status_complete "Activated swap"
-status_complete "    swap activated"
-status_complete "Optimized Repo Mirror List"
-status_complete "Updated Arch Linux Keyring"
-status_complete "Installed Base System"
-status_complete "    Installed Compositor: $DESKTOP_ENVIRONMENT"
-status_complete "    Created User: $USERNAME"
-status_complete "fstab generated"
-status_complete "Configured new system root.."
-status_complete "    Hostname set to $Hostname"
-status_complete "    Root password configured"
-status_complete "    User account configured"
-status_complete "    WiFi Setup"
-status_complete "        Connection to $SSID configured"
-status_complete "    Bootloader setup"
-status_complete "    Configured Boot Entries"
-status_complete "    Enabled Mulitlib repos"
-status_complete "    Enabled system services"
-status_complete "        Bluetooth Enabled!"
-status_complete "        NetworkManager Enabled!"
-status_complete "        Systemd-Homed Enabled!"
-status_complete "        Systemd-Resolved Enabled!"
-status_complete "        Docker Enabled!"
-status_complete "        Cups Enabled!"
-status_complete "Power Management Profile Set"
+check_ethernet
+check_wifi
+configure_locale
+configure_hostname
+set_root_password
+install_bootloader
+configure_boot_entries
+enable_multilib
+enable_system_services
 exit
