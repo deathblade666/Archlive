@@ -134,3 +134,6 @@ grim
 # Printer utils
 system-config-printer
 cups
+
+# fido2 dependency
+libfido2
