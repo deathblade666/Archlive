@@ -668,6 +668,7 @@ detect_gpu_and_append_pkg() {
             echo "nvidia-utils"
             echo "lib32-nvidia-utils"
             echo "nvidia-settings"
+            echo "egl-wayland"
             echo
         } >> "$pkglist_file"
 
@@ -675,9 +676,12 @@ detect_gpu_and_append_pkg() {
         gpu_type="AMD GPU detected."
         {
             echo "# GPU Drivers: AMD"
-            echo "xf86-video-amdgpu"
             echo "mesa"
             echo "lib32-mesa"
+            echo "vulkan-radeon"
+            echo "lib32-vulkan-radeon"
+            echo "libva-mesa-driver"
+            echo "mesa-vdpau"
             echo
         } >> "$pkglist_file"
 
@@ -685,10 +689,11 @@ detect_gpu_and_append_pkg() {
         gpu_type="Intel integrated graphics detected."
         {
             echo "# GPU Drivers: Intel"
-            echo "xf86-video-intel"
             echo "mesa"
             echo "lib32-mesa"
             echo "vulkan-intel"
+            echo "lib32-vulkan-intel"
+            echo "intel-media-driver"
             echo
         } >> "$pkglist_file"
 
