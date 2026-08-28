@@ -4,8 +4,12 @@ phase_spinner() {
     local message=$1
     shift
 
+    local tmp_log
+    tmp_log=$(mktemp)
+
     echo -n "$message... "
-    "$@" &> /dev/null & local pid=$!
+    "$@" > "$tmp_log" 2>&1 &
+    local pid=$!
 
     local spinstr='|/-\\'
     local i=0
@@ -17,7 +21,18 @@ phase_spinner() {
 
     wait $pid
     local exit_code=$?
-    printf "\r%s... Done.\n" "$message"
+
+    if [ $exit_code -eq 0 ]; then
+        printf "\r%s... Done.\n" "$message"
+        rm -f "$tmp_log"
+    else
+        printf "\r%s... Failed!\n" "$message"
+        echo "----------------- Output / Error Log -----------------"
+        cat "$tmp_log"
+        echo "------------------------------------------------------"
+        rm -f "$tmp_log"
+    fi
+
     return $exit_code
 }
 
@@ -26,7 +41,6 @@ ask_yes_no() {
     local response
     while true; do
         read -p "$prompt (y/n): " response
-        # Trim whitespace and convert to lowercase
         response=$(echo "$response" | xargs | tr '[:upper:]' '[:lower:]')
         
         case "$response" in
@@ -59,7 +73,6 @@ clear
 rfkill unblock all
 
 network_config() {
-    # Configuration file path
     CONFIG_FILE=".net_config"
 
     check_internet() {
@@ -94,11 +107,10 @@ network_config() {
             sleep 2 
             clear
             echo "--- Available Networks ---"
-            # Extract SSIDs into an array
             mapfile -t networks < <(iwctl station "$DEVICE" get-networks | sed 's/\x1b\[[0-9;]*m//g' | awk 'NR>4 {print substr($0, 1, 32)}' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
 
             if [ ${#networks[@]} -eq 0 ]; then
-	            clear
+                clear
                 echo "No networks found. Retrying scan..."
                 continue
             fi
@@ -113,7 +125,7 @@ network_config() {
 
             if [[ "$selection" =~ ^[0-9]+$ ]] && [ "$selection" -ge 1 ] && [ "$selection" -le "${#networks[@]}" ]; then
                 selected_ssid="${networks[$((selection-1))]}"
-	        clear
+                clear
                 read -s -p "Enter Password for $selected_ssid: " password
                 echo -e "\nAttempting to connect..."
 
@@ -131,15 +143,12 @@ network_config() {
 
                     if [ "$SUCCESS" = true ]; then
                         echo "Successfully connected!"
-                    
-                        # --- Exporting Configuration ---
                         echo "Saving configuration to $CONFIG_FILE..."
                         cat <<EOF > "$CONFIG_FILE"
 WIFI_INTERFACE="$DEVICE"
 WIFI_SSID="$selected_ssid"
 WIFI_PASS="$password"
 EOF
-                        # Restrict permissions since it contains a password
                         chmod 600 "$CONFIG_FILE"
                         break 
                     else
@@ -159,7 +168,6 @@ EOF
 
 echo "[$(date)] Starting Arch Linux installation..."
 
-# Sync time
 timedatectl
 
 drive_config() {
@@ -184,8 +192,6 @@ drive_config() {
             size=$(echo "${drives[$i]}" | awk '{print $2}')
             raw_model=$(udevadm info --query=property --name="/dev/$name" | grep "ID_MODEL=" | cut -d= -f2)
             model=$(echo "${raw_model:-Unknown}" | sed 's/_/ /g')
-        
-            # Add some visual formatting
             printf "  %d) %-12s │ %-8s │ %s\n" "$((i+1))" "/dev/$name" "$size" "$model"
         done
         echo "================================================="
@@ -299,7 +305,6 @@ Desktop_Environment_Selection() {
         esac
     done
 
-    # Append desktop packages to pkglist.txt if selected
     if [ -n "$desktop_packages" ]; then
         echo
         echo "Adding $selected_de packages to installation list..."
@@ -322,10 +327,9 @@ User_Config() {
     echo "================================================="
     echo
 
-    # Get username
     while true; do
         read -p "Enter username: " User
-        User=$(echo "$User" | xargs)  # Trim whitespace
+        User=$(echo "$User" | xargs)
     
         if [ -z "$User" ]; then
             echo "[ERROR] Username cannot be empty. Please try again."
@@ -333,7 +337,6 @@ User_Config() {
             continue
         fi
     
-        # Basic username validation
         if ! [[ "$User" =~ ^[a-z_][a-z0-9_-]*$ ]]; then
             echo "[ERROR] Username must start with lowercase letter or underscore,"
             echo "        and contain only lowercase letters, numbers, underscores, and hyphens."
@@ -344,10 +347,9 @@ User_Config() {
         break
     done
 
-    # Get home directory size
     while true; do
         read -p "Enter home directory size (e.g., 5G, 500M, 10G): " home_size
-        home_size=$(echo "$home_size" | xargs)  # Trim whitespace
+        home_size=$(echo "$home_size" | xargs)
     
         if [ -z "$home_size" ]; then
             echo "[ERROR] Home size cannot be empty. Please try again."
@@ -355,7 +357,6 @@ User_Config() {
             continue
         fi
     
-        # Validate format (number followed by K, M, G, or T)
         if ! [[ "$home_size" =~ ^[0-9]+[KMGT]?$ ]]; then
             echo "[ERROR] Invalid format. Please use format like: 5G, 500M, 1T, etc."
             echo
@@ -377,7 +378,6 @@ User_Config() {
         echo "$((i+1)). $shell_name (${shells[$i]})"
     done
 
-    # Get shell selection
     while true; do
         read -p "Select shell (1-${#shells[@]}): " shell_choice
     
@@ -422,7 +422,7 @@ hostname_setup () {
 
     while true; do
         read -p "Enter hostname for this system: " Hostname
-        Hostname=$(echo "$Hostname" | xargs)  # Trim whitespace
+        Hostname=$(echo "$Hostname" | xargs)
     
         if [ -z "$Hostname" ]; then
             echo "[ERROR] Hostname cannot be empty. Please try again."
@@ -430,7 +430,6 @@ hostname_setup () {
             continue
         fi
     
-        # Basic hostname validation
         if ! [[ "$Hostname" =~ ^[a-zA-Z0-9-]+$ ]]; then
             echo "[ERROR] Hostname can only contain letters, numbers, and hyphens."
             echo
@@ -454,7 +453,6 @@ select_timezone() {
     echo "             Region Selection"
     echo "================================================="
     echo
-    # Step 1: Select region
     regions=($(timedatectl list-timezones | cut -d'/' -f1 | sort -u))
 
     echo "Select your region:"
@@ -468,7 +466,6 @@ select_timezone() {
     echo "               City Selection"
     echo "================================================="
     echo
-    # Step 2: Select city within region
     cities=($(timedatectl list-timezones | grep "^$region/" | cut -d'/' -f2-))
 
     echo "Select your city:"
@@ -478,14 +475,13 @@ select_timezone() {
 
     timezone="$region/$city"
 
-    # Step 3: Confirmation
     clear
     if ask_yes_no "Confirm timezone '$timezone'?"; then
         echo "Timezone confirmed: $timezone"
         SELECTED_TIMEZONE="$timezone"
     else
         echo "Okay, let's try again."
-        select_timezone   # restart selection
+        select_timezone
     fi
 }
 
@@ -735,41 +731,67 @@ detect_machine_type(){
     fi
 }
 
+validate_pkglist() {
+    local pkgs=("$@")
+
+    if [ ${#pkgs[@]} -eq 0 ]; then
+        echo "❌ pkglist.txt contains no valid packages!" >&2
+        return 1
+    fi
+
+    echo "Validating package targets against pacman databases..."
+    local invalid_output
+    if ! invalid_output=$(pacman -Sp "${pkgs[@]}" 2>&1 >/dev/null); then
+        echo "❌ Package validation failed! The following issues were found:" >&2
+        echo "$invalid_output" | grep "error: target not found:" >&2 || echo "$invalid_output" >&2
+        return 1
+    fi
+
+    return 0
+}
+
 check_pacstrap() {
     local target="$1"
 
-    # 1. Check exit code of pacstrap
-    if [[ "$PACSTRAP_EXIT" -ne 0 ]]; then
-        echo "❌ pacstrap failed with exit code $PACSTRAP_EXIT"
-        exit 1
-    fi
-
-    # 2. Check that essential directories exist
-    local required_dirs=(
-        "$target/bin"
+    local required_paths=(
         "$target/usr"
         "$target/etc"
         "$target/var"
+        "$target/bin"
     )
 
-    for d in "${required_dirs[@]}"; do
-        if [[ ! -d "$d" ]]; then
-            echo "❌ pacstrap incomplete: missing $d"
-            exit 1
+    for p in "${required_paths[@]}"; do
+        if [[ ! -e "$p" && ! -L "$p" ]]; then
+            echo "❌ pacstrap incomplete: missing required path $p" >&2
+            return 1
         fi
     done
 
-    # 3. Check that pacman database exists
     if [[ ! -d "$target/var/lib/pacman/local" ]]; then
-        echo "❌ pacstrap incomplete: pacman DB missing"
-        exit 1
+        echo "❌ pacstrap incomplete: pacman DB missing at $target/var/lib/pacman/local" >&2
+        return 1
     fi
+
+    return 0
 }
 
 install_base_system() {
-    pacstrap /mnt $(awk '!/^#/ { gsub(/#.*/, ""); print }' pkglist.txt)
-    PACSTRAP_EXIT=$?
-    check_pacstrap /mnt
+    local target="/mnt"
+    local pkgs=()
+
+    # Strip comments, replace non-breaking spaces (\xC2\xA0) with spaces, and read into array
+    mapfile -t pkgs < <(sed -e 's/#.*//' -e 's/\xC2\xA0/ /g' pkglist.txt | tr -s '[:space:]' '\n' | grep -v '^$')
+
+    # Step 1: Dry-run check against sync DBs
+    if ! validate_pkglist "${pkgs[@]}"; then
+        return 1
+    fi
+
+    # Step 2: Run pacstrap
+    pacstrap --needed "$target" "${pkgs[@]}" || return 1
+
+    # Step 3: Run sanity checks
+    check_pacstrap "$target" || return 1
 }
 
 gen_fstab() {
@@ -786,8 +808,8 @@ move_files_to_chroot() {
 }
 
 cleanup() {
-    rm /mnt/root/chroot_install.sh
-    rm /mnt/root/.net_config
+    rm -f /mnt/root/chroot_install.sh
+    rm -f /mnt/root/.net_config
     echo -n "Unmounting drive... "
     umount /mnt/boot
     umount /mnt
@@ -811,11 +833,12 @@ phase_spinner "Detecting Form Factor" detect_machine_type
 phase_spinner "Optimizing Repo Mirror List" bash -c 'pacman -Sy && reflector --latest 200 --protocol http,https --sort rate --save /etc/pacman.d/mirrorlist'
 phase_spinner "Updating Arch Linux Keyring" pacman -Sy archlinux-keyring --noconfirm
 phase_spinner "Installing Base System" install_base_system
-phase_spinner "Generatiing default fstab" gen_fstab
+phase_spinner "Generating default fstab" gen_fstab
 phase_spinner "Copying files to new system" move_files_to_chroot
-phase_spinner "Configuring new system root... " arch-chroot /mnt /root/chroot_install.sh "$selected_drive3" "$selected_drive" "$selected_drive1" "$selected_drive2" "$Hostname" "$rootpw1" "$timezone" "$locale"
+phase_spinner "Configuring new system root..." arch-chroot /mnt /root/chroot_install.sh "$selected_drive3" "$selected_drive" "$selected_drive1" "$selected_drive2" "$Hostname" "$rootpw1" "$timezone" "$locale"
 phase_spinner "Unmounting drive" cleanup
 echo "System configured... Done."
+
 if ask_yes_no "Reboot your system to setup user accounts! Would you like to restart now?"; then
     systemctl reboot
 else
