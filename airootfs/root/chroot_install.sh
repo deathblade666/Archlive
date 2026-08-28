@@ -8,6 +8,12 @@ Hostname=$5
 rootpw1=$6
 timezone=$7
 locale=$8
+ACCOUNT_TYPE=$9
+User=${10}
+Setshell=${11}
+sudo_access=${12}
+HOME_SIZE=${13}
+
 CONFIG_FILE="/root/.net_config"
 
 status_complete() {
@@ -17,9 +23,9 @@ status_complete() {
 configure_locale() {
     ln -sf /usr/share/zoneinfo/$timezone /etc/localtime
     hwclock --systohc
-    echo $locale UTF-8 >> /etc/locale.gen
+    echo "$locale UTF-8" >> /etc/locale.gen
     locale-gen
-    echo LANG=$locale > /etc/locale.conf
+    echo "LANG=$locale" > /etc/locale.conf
     export LANG=$locale
 }
 
@@ -37,7 +43,6 @@ set_root_password() {
     clear
 }
 
-# Ethernet setup
 check_ethernet() {
     eth_device=$(ip -o link show | awk -F': ' '{print $2}' | grep -E '^e(n|th|np)')
     if [ -n "$eth_device" ]; then
@@ -61,7 +66,6 @@ EOF
 }
 
 check_wifi() {
-    # Grabs the first wireless interface name
     wifi_device=$(iw dev | awk '$1=="Interface"{print $2}' | head -n 1)
 
     if [ -n "$wifi_device" ]; then
@@ -70,7 +74,6 @@ check_wifi() {
         echo "================================================="
         echo "Found Wi-Fi interface: $wifi_device"
 
-        # Check if we have an exported config from the previous script
         if [ -f "$CONFIG_FILE" ]; then
             echo "Found saved network configuration. Automating setup..."
             source "$CONFIG_FILE"
@@ -80,10 +83,8 @@ check_wifi() {
         fi
 
         if [ "$AUTO_CONF" = true ]; then
-            # Create NetworkManager connection profile
-            create_nm_config() {
-                mkdir -p /etc/NetworkManager/system-connections
-                cat > "/etc/NetworkManager/system-connections/$SSID.nmconnection" << EOF
+            mkdir -p /etc/NetworkManager/system-connections
+            cat > "/etc/NetworkManager/system-connections/$SSID.nmconnection" << EOF
 [connection]
 id=$SSID
 uuid=$(cat /proc/sys/kernel/random/uuid)
@@ -106,28 +107,17 @@ method=auto
 addr-gen-mode=default
 method=auto
 EOF
-                chmod 600 "/etc/NetworkManager/system-connections/$SSID.nmconnection"
-            }
-            create_nm_config
-
-            # Optional: Also generate wpa_supplicant.conf if you want a fallback
-            if command -v wpa_passphrase &> /dev/null; then
-                generate_wpa() {
-                    wpa_passphrase "$SSID" "$WIFIPASS" > /etc/wpa_supplicant/wpa_supplicant.conf
-                }
-                generate_wpa
-            fi
+            chmod 600 "/etc/NetworkManager/system-connections/$SSID.nmconnection"
         fi
     else
         echo "[INFO] No Wi-Fi interface detected. Skipping Wi-Fi setup."
     fi
 }
-# Bootloader setup
+
 install_bootloader() {
     bootctl install
 }
 
-# UUID setup
 configure_boot_entries() {
     uuid=$(lsblk -no UUID "$rootPartition")
     cat > /boot/loader/loader.conf << EOF
@@ -145,19 +135,41 @@ EOF
     bootctl update
 }
 
-# Enable Multilib
 enable_multilib() {
     sed -i -e '/#\[multilib\]/,+1s/^#//' /etc/pacman.conf
 }
 
+setup_user_account() {
+    if [ "$ACCOUNT_TYPE" = "traditional" ]; then
+        echo "Creating traditional UNIX user: $User..."
+        useradd -m -g users -G wheel -s "$Setshell" "$User"
+        
+        echo "Set password for $User:"
+        passwd "$User"
+        
+        if [ "$sudo_access" = "true" ]; then
+            echo "%wheel ALL=(ALL:ALL) ALL" > /etc/sudoers.d/10-wheel
+            chmod 440 /etc/sudoers.d/10-wheel
+        fi
 
-# Enable services
-enable_system_services() {
-    system_type=$(hostnamectl | grep "Chassis")
+    elif [ "$ACCOUNT_TYPE" = "homed" ]; then
+        echo "systemd-homed selected. Deferring account creation to first boot..."
+        
+        # Enable systemd-homed daemon
+        systemctl enable systemd-homed 2>&1 | grep -vE 'Created symlink|is not a native service'
 
-    cat > /etc/systemd/system/first-boot.service << EOF
+        # Generate config for user.sh on first boot
+        cat > /root/user.conf << EOF
+USERNAME="$User"
+HOME_SIZE="$HOME_SIZE"
+SHELL="$Setshell"
+SUDO_ACCESS="$sudo_access"
+EOF
+
+        # Dynamically build and enable first-boot.service ONLY for homed
+        cat > /etc/systemd/system/first-boot.service << EOF
 [Unit]
-Description=First Boot User Account Setup
+Description=First Boot systemd-homed User Setup
 After=multi-user.target
 ConditionPathExists=/root/user.conf
 
@@ -176,45 +188,50 @@ RemainAfterExit=yes
 [Install]
 WantedBy=multi-user.target
 EOF
+        systemctl enable first-boot.service 2>&1 | grep -vE 'Created symlink|is not a native service'
+        systemctl mask getty@tty1.service 
+    fi
+}
+
+enable_system_services() {
+    system_type=$(hostnamectl | grep "Chassis")
+
     systemctl enable bluetooth 2>&1 | grep -vE 'Created symlink|is not a native service'
     systemctl enable NetworkManager 2>&1 | grep -vE 'Created symlink|is not a native service'
-    systemctl enable systemd-homed 2>&1 | grep -vE 'Created symlink|is not a native service'
     systemctl enable systemd-resolved 2>&1 | grep -vE 'Created symlink|is not a native service'
-    systemctl enable cups 2>&1 | grep -vE 'Created symlink|is not a native service'
+    
+    # Enable systemd-timesyncd for default Arch NTP time synchronization
+    systemctl enable systemd-timesyncd 2>&1 | grep -vE 'Created symlink|is not a native service'
+    
     systemctl enable docker 2>&1 | grep -vE 'Created symlink|is not a native service'
-    systemctl enable first-boot 2>&1 | grep -vE 'Created symlink|is not a native service'
-    systemctl mask getty@tty1.service 
+    
+    # Enable optional services if installed
+    systemctl enable cups 2>/dev/null || true
 
     if [[ $system_type == *"laptop"* ]]; then
         if [[ -f /etc/tlp.conf ]]; then
             cp /etc/tlp.conf /etc/tlp.conf.bak
         fi
-    fi
 
         tee /etc/tlp.conf > /dev/null <<EOF
-# TLP Configuration - Generated by setup-tlp.sh
+# TLP Configuration
 
-# --- CPU Settings ---
 CPU_SCALING_GOVERNOR_ON_BAT=powersave
 CPU_SCALING_GOVERNOR_ON_AC=performance
 CPU_ENERGY_PERF_POLICY_ON_BAT=power
 CPU_ENERGY_PERF_POLICY_ON_AC=balance_performance
 
-# --- Battery Charge Thresholds (BAT0) ---
 START_CHARGE_THRESH_BAT0=40
 STOP_CHARGE_THRESH_BAT0=80
 
-# --- USB Autosuspend ---
 USB_AUTOSUSPEND=1
-
-# --- WiFi Power Saving ---
 WIFI_PWR_ON_BAT=1
 
-# --- Disk Power Management ---
 DISK_APM_LEVEL_ON_BAT="128 128"
 DISK_APM_LEVEL_ON_AC="254 254"
 EOF
-        systemctl enable tlp.service
+        systemctl enable tlp.service 2>/dev/null || true
+    fi
 }
 
 check_ethernet
@@ -225,5 +242,6 @@ set_root_password
 install_bootloader
 configure_boot_entries
 enable_multilib
+setup_user_account
 enable_system_services
 exit

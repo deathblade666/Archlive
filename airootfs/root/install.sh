@@ -327,6 +327,7 @@ User_Config() {
     echo "================================================="
     echo
 
+    # 1. Username
     while true; do
         read -p "Enter username: " User
         User=$(echo "$User" | xargs)
@@ -347,25 +348,55 @@ User_Config() {
         break
     done
 
+    # 2. Account Type Selection
+    echo
+    echo "Select Account Strategy:"
+    echo "1) Traditional UNIX user (useradd / /etc/passwd)"
+    echo "2) systemd-homed (Portable / Managed user account)"
+    echo
     while true; do
-        read -p "Enter home directory size (e.g., 5G, 500M, 10G): " home_size
-        home_size=$(echo "$home_size" | xargs)
-    
-        if [ -z "$home_size" ]; then
-            echo "[ERROR] Home size cannot be empty. Please try again."
-            echo
-            continue
-        fi
-    
-        if ! [[ "$home_size" =~ ^[0-9]+[KMGT]?$ ]]; then
-            echo "[ERROR] Invalid format. Please use format like: 5G, 500M, 1T, etc."
-            echo
-            continue
-        fi
-    
-        break
+        read -p "Select choice (1-2): " acct_choice
+        case "$acct_choice" in
+            1)
+                ACCOUNT_TYPE="traditional"
+                HOME_SIZE=""
+                break
+                ;;
+            2)
+                ACCOUNT_TYPE="homed"
+                break
+                ;;
+            *)
+                echo "[ERROR] Invalid selection. Please choose 1 or 2."
+                ;;
+        esac
     done
 
+    # 3. Home Directory Size (ONLY for systemd-homed)
+    if [ "$ACCOUNT_TYPE" = "homed" ]; then
+        echo
+        while true; do
+            read -p "Enter home directory quota size (e.g., 20G, 50G): " home_size
+            home_size=$(echo "$home_size" | xargs)
+        
+            if [ -z "$home_size" ]; then
+                echo "[ERROR] Home size cannot be empty for systemd-homed. Please try again."
+                echo
+                continue
+            fi
+        
+            if ! [[ "$home_size" =~ ^[0-9]+[KMGT]?$ ]]; then
+                echo "[ERROR] Invalid format. Please use format like: 5G, 20G, 1T, etc."
+                echo
+                continue
+            fi
+        
+            HOME_SIZE="$home_size"
+            break
+        done
+    fi
+
+    # 4. Shell Selection
     clear
     echo "================================================="
     echo "              User Account Setup"
@@ -390,6 +421,8 @@ User_Config() {
         Setshell="${shells[$((shell_choice-1))]}"
         break
     done
+
+    # 5. Sudoers Access
     clear
     echo "================================================="
     echo "              User Account Setup"
@@ -402,13 +435,13 @@ User_Config() {
         sudo_access="false"
     fi
 
+    # Write parameters out to user.conf for the chroot phase
     cat > /root/user.conf << EOF
 USERNAME="$User"
-HOME_SIZE="$home_size"
+ACCOUNT_TYPE="$ACCOUNT_TYPE"
+HOME_SIZE="$HOME_SIZE"
 SHELL="$Setshell"
 SUDO_ACCESS="$sudo_access"
-DESKTOP_ENVIRONMENT="$selected_de"
-DISPLAY_MANAGER="$display_manager"
 EOF
 }
 
@@ -840,8 +873,20 @@ phase_spinner "Updating Arch Linux Keyring" pacman -Sy archlinux-keyring --nocon
 phase_spinner "Installing Base System" install_base_system
 phase_spinner "Generating default fstab" gen_fstab
 phase_spinner "Copying files to new system" move_files_to_chroot
-phase_spinner "Configuring new system root..." arch-chroot /mnt /root/chroot_install.sh "$selected_drive3" "$selected_drive" "$selected_drive1" "$selected_drive2" "$Hostname" "$rootpw1" "$timezone" "$locale"
-phase_spinner "Unmounting drive" cleanup
+phase_spinner "Configuring new system root..." arch-chroot /mnt /root/chroot_install.sh \
+  "$selected_drive3" \
+  "$selected_drive" \
+  "$selected_drive1" \
+  "$selected_drive2" \
+  "$Hostname" \
+  "$rootpw1" \
+  "$timezone" \
+  "$locale" \
+  "$ACCOUNT_TYPE" \
+  "$User" \
+  "$Setshell" \
+  "$sudo_access" \
+  "$HOME_SIZE"phase_spinner "Unmounting drive" cleanup
 echo "System configured... Done."
 
 if ask_yes_no "Reboot your system to setup user accounts! Would you like to restart now?"; then
