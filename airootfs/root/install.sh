@@ -279,7 +279,7 @@ Desktop_Environment_Selection() {
                 ;;
             3)
                 selected_de="Sway"
-                desktop_packages="sway swayidle swaylock-effects waybar foot fuzzel mako grim slurp swappy wl-clipboard cliphist pavucontrol brightnessctl gammastep wlr-randr polkit-gnome"
+                desktop_packages="sway swayidle waybar foot fuzzel mako grim slurp swappy wl-clipboard cliphist pavucontrol brightnessctl gammastep wlr-randr polkit-gnome"
                 display_manager="sddm"
                 break
                 ;;
