@@ -13,6 +13,7 @@ User=${10}
 Setshell=${11}
 sudo_access=${12}
 HOME_SIZE=${13}
+DE=${14}
 
 CONFIG_FILE="/root/.net_config"
 
@@ -195,6 +196,16 @@ EOF
 
 enable_system_services() {
     system_type=$(hostnamectl | grep "Chassis")
+    if [[ "$DE" == "KDE" || "$DE" == "Sway" || "$DE" == "Hyprland" ]]; then
+      mkdir -p /etc/sddm.conf.d
+  cat > /etc/sddm.conf.d/wayland.conf << 'EOF'
+[General]
+DisplayServer=wayland
+EOF
+      systemctl enable sddm 2>&1 | grep -vE 'Created symlink|is not a native service'
+    elif [[ "$DE" == "GNOME" ]]; then
+      systemctl enable gdm 2>&1 | grep -vE 'Created symlink|is not a native service'
+    fi
 
     systemctl enable bluetooth 2>&1 | grep -vE 'Created symlink|is not a native service'
     systemctl enable NetworkManager 2>&1 | grep -vE 'Created symlink|is not a native service'

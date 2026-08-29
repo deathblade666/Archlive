@@ -890,7 +890,8 @@ phase_spinner "Configuring new system root..." arch-chroot /mnt /root/chroot_ins
   "$User" \
   "$Setshell" \
   "$sudo_access" \
-  "$HOME_SIZE"
+  "$HOME_SIZE" \
+  "$selected_de"
 phase_spinner "Unmounting drive" cleanup
 echo "System configured... Done."
 
