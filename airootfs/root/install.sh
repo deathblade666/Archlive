@@ -473,6 +473,7 @@ ACCOUNT_TYPE="$ACCOUNT_TYPE"
 HOME_SIZE="$HOME_SIZE"
 SHELL="$Setshell"
 SUDO_ACCESS="$sudo_access"
+DISPLAY_MANAGER="$display_manager"
 EOF
 }
 

@@ -159,14 +159,6 @@ setup_user_account() {
         # Enable systemd-homed daemon
         systemctl enable systemd-homed 2>&1 | grep -vE 'Created symlink|is not a native service'
 
-        # Generate config for user.sh on first boot
-        cat > /root/user.conf << EOF
-USERNAME="$User"
-HOME_SIZE="$HOME_SIZE"
-SHELL="$Setshell"
-SUDO_ACCESS="$sudo_access"
-EOF
-
         # Dynamically build and enable first-boot.service ONLY for homed
         cat > /etc/systemd/system/first-boot.service << EOF
 [Unit]
