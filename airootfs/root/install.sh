@@ -260,9 +260,6 @@ Desktop_Environment_Selection() {
     echo
     echo "--------------------------------------------------------------------"
     echo
-    echo "Note: Hyprland and Sway do not come with a display manager as such"
-    echo "if one is desired it must be installed an configured after first boot"
-    echo
 
     while true; do
         read -p "Select desktop environment (1-5): " de_choice
@@ -282,14 +279,14 @@ Desktop_Environment_Selection() {
                 ;;
             3)
                 selected_de="Sway"
-                desktop_packages="sway swayidle swaylock waybar foot grim slurp wl-clipboard polkit-gnome"
-                display_manager=""
+                desktop_packages="sway swayidle swaylock-effects waybar foot fuzzel mako grim slurp swappy wl-clipboard cliphist pavucontrol brightnessctl gammastep wlr-randr polkit-gnome"
+                display_manager="sddm"
                 break
                 ;;
             4)
                 selected_de="Hyprland"
-                desktop_packages="hyprland waybar foot grim slurp wl-clipboard hyprpaper hypridle hyprlock polkit-gnome"
-                display_manager=""
+                desktop_packages="hyprland waybar foot fuzzel swaync hyprpaper hypridle hyprlock grim slurp swappy wl-clipboard cliphist pavucontrol brightnessctl gammastep wlr-randr polkit-gnome"
+                display_manager="sddm"
                 break
                 ;;
             5)
@@ -309,12 +306,19 @@ Desktop_Environment_Selection() {
         echo
         echo "Adding $selected_de packages to installation list..."
         echo "# Desktop Environment: $selected_de" >> pkglist.txt
-        for package in $desktop_packages; do
-            echo "$package" >> pkglist.txt
+        
+        # Combine desktop packages and optional display manager
+        all_targets="$desktop_packages $display_manager"
+
+        for package in $all_targets; do
+            # Only append if the package isn't already present as an exact line in pkglist.txt
+            if ! grep -qE "^[[:space:]]*${package}[[:space:]]*$" pkglist.txt; then
+                echo "$package" >> pkglist.txt
+                echo "  + Added $package"
+            else
+                echo "  ~ Skipping $package (already in pkglist.txt)"
+            fi
         done
-        if [ -n "$display_manager" ]; then
-            echo "$display_manager" >> pkglist.txt
-        fi
         echo >> pkglist.txt
     fi
 }
@@ -818,7 +822,7 @@ install_base_system() {
     local pkgs=()
 
     # Strip comments, replace non-breaking spaces (\xC2\xA0) with spaces, and read into array
-    mapfile -t pkgs < <(sed -e 's/#.*//' -e 's/\xC2\xA0/ /g' pkglist.txt | tr -s '[:space:]' '\n' | grep -v '^$')
+    mapfile -t pkgs < <(awk '!/^#/ { gsub(/#.*/, ""); for(i=1;i<=NF;i++) print $i }' pkglist.txt)
 
     # Step 1: Dry-run check against sync DBs
     if ! validate_pkglist "${pkgs[@]}"; then
@@ -886,7 +890,9 @@ phase_spinner "Configuring new system root..." arch-chroot /mnt /root/chroot_ins
   "$User" \
   "$Setshell" \
   "$sudo_access" \
-  "$HOME_SIZE"phase_spinner "Unmounting drive" cleanup
+  "$HOME_SIZE" \
+  "$selected_de"
+phase_spinner "Unmounting drive" cleanup
 echo "System configured... Done."
 
 if ask_yes_no "Reboot your system to setup user accounts! Would you like to restart now?"; then
