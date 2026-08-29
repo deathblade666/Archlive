@@ -368,6 +368,7 @@ User_Config() {
                 ;;
             2)
                 ACCOUNT_TYPE="homed"
+                USER_PASS=""
                 break
                 ;;
             *)
@@ -376,7 +377,33 @@ User_Config() {
         esac
     done
 
-    # 3. Home Directory Size (ONLY for systemd-homed)
+    # 3. User Password Prompt (ONLY for Traditional users)
+    if [ "$ACCOUNT_TYPE" = "traditional" ]; then
+        echo
+        while true; do
+            read -s -p "Enter password for $User: " pass1
+            echo
+            read -s -p "Confirm password for $User: " pass2
+            echo
+
+            if [ -z "$pass1" ]; then
+                echo "[ERROR] Password cannot be empty. Please try again."
+                echo
+                continue
+            fi
+
+            if [ "$pass1" != "$pass2" ]; then
+                echo "[ERROR] Passwords do not match. Please try again."
+                echo
+                continue
+            fi
+
+            USER_PASS="$pass1"
+            break
+        done
+    fi
+
+    # 4. Home Directory Size (ONLY for systemd-homed)
     if [ "$ACCOUNT_TYPE" = "homed" ]; then
         echo
         while true; do
@@ -400,7 +427,7 @@ User_Config() {
         done
     fi
 
-    # 4. Shell Selection
+    # 5. Shell Selection
     clear
     echo "================================================="
     echo "              User Account Setup"
@@ -426,7 +453,7 @@ User_Config() {
         break
     done
 
-    # 5. Sudoers Access
+    # 6. Sudoers Access
     clear
     echo "================================================="
     echo "              User Account Setup"
@@ -439,7 +466,7 @@ User_Config() {
         sudo_access="false"
     fi
 
-    # Write parameters out to user.conf for the chroot phase
+    # Write non-sensitive parameters to user.conf for chroot (USER_PASS stays in RAM)
     cat > /root/user.conf << EOF
 USERNAME="$User"
 ACCOUNT_TYPE="$ACCOUNT_TYPE"
@@ -773,25 +800,6 @@ detect_machine_type(){
     fi
 }
 
-validate_pkglist() {
-    local pkgs=("$@")
-
-    if [ ${#pkgs[@]} -eq 0 ]; then
-        echo "❌ pkglist.txt contains no valid packages!" >&2
-        return 1
-    fi
-
-    echo "Validating package targets against pacman databases..."
-    local invalid_output
-    if ! invalid_output=$(pacman -Sp "${pkgs[@]}" 2>&1 >/dev/null); then
-        echo "❌ Package validation failed! The following issues were found:" >&2
-        echo "$invalid_output" | grep "error: target not found:" >&2 || echo "$invalid_output" >&2
-        return 1
-    fi
-
-    return 0
-}
-
 check_pacstrap() {
     local target="$1"
 
@@ -819,18 +827,24 @@ check_pacstrap() {
 
 install_base_system() {
     local target="/mnt"
-    local pkgs=()
+    
+    # Strip comments and pull clean space-separated package targets
+    local pkgs
+    pkgs=$(awk '!/^#/ { gsub(/#.*/, ""); print }' pkglist.txt)
 
-    # Strip comments, replace non-breaking spaces (\xC2\xA0) with spaces, and read into array
-    mapfile -t pkgs < <(awk '!/^#/ { gsub(/#.*/, ""); for(i=1;i<=NF;i++) print $i }' pkglist.txt)
-
-    # Step 1: Dry-run check against sync DBs
-    if ! validate_pkglist "${pkgs[@]}"; then
+    if [ -z "$pkgs" ]; then
+        echo "❌ pkglist.txt contains no valid packages!" >&2
         return 1
     fi
 
-    # Step 2: Run pacstrap
-    pacstrap --needed "$target" "${pkgs[@]}" || return 1
+    # Step 1: Dry-run check against sync DBs
+    if ! pacman -Sp $pkgs >/dev/null 2>&1; then
+        echo "❌ Package validation failed! Check pkglist.txt for invalid package names." >&2
+        return 1
+    fi
+
+    # Step 2: Install base system using word-splitting
+    pacstrap "$target" $pkgs || return 1
 
     # Step 3: Run sanity checks
     check_pacstrap "$target" || return 1
@@ -892,6 +906,9 @@ phase_spinner "Configuring new system root..." arch-chroot /mnt /root/chroot_ins
   "$sudo_access" \
   "$HOME_SIZE" \
   "$selected_de"
+if [ "$ACCOUNT_TYPE" = "traditional" ]; then
+    phase_spinner "Setting password for $User..." bash -c "echo '$User:$USER_PASS' | arch-chroot /mnt chpasswd"
+fi
 phase_spinner "Unmounting drive" cleanup
 echo "System configured... Done."
 

@@ -6,7 +6,7 @@
 1. systemd driven
     - ~~systemd-networkd~~ for compatibility switched to NetworkManager
     - systemd-resolved
-    - systemd-homed
+    - systemd-homed - NOW OPTIONAL
       - home dir encryption with LUKS
 2. easily add your desired packages!
     - modify the pklist.txt to suite your needs
@@ -48,4 +48,4 @@
   Once it is installed you can clone this repo with the following command
 ``` git clone https://github.com/deathblade666/Archlive.git ~/archlive ```
 
-For more information on archiso please visit https://wiki.archlinux.org/index.php/Archiso or the develpments homepage at https://gitlab.archlinux.org/archlinux/archiso/-/tree/master/docs
+For more information on archiso please visit https://wiki.archlinux.org/index.php/Archiso or the development's homepage at https://gitlab.archlinux.org/archlinux/archiso/-/tree/master/docs
