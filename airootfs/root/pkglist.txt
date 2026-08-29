@@ -68,5 +68,43 @@ ttf-liberation
 noto-fonts
 noto-fonts-emoji
 
-# Tools
-pcmanfm
+# TUI file manager
+ranger                  # Text-based file manager (CLI)
+
+# Wallpaper tools
+swaybg                  # Background utility for Sway/Wayland
+
+# Samba client support
+samba                   # SMB/CIFS client/server tools
+cifs-utils              # CIFS mount helpers
+
+# Archive utilities
+zip                     # ZIP archive tool
+unzip                   # ZIP extraction tool
+
+# File manager
+pcmanfm                 # Lightweight graphical file manager
+gvfs                    # Virtual filesystem support for file manager
+
+# Media player
+mpv                     # Versatile media player with CLI and GUI
+
+# Document viewer
+zathura                 # Lightweight document viewer
+zathura-pdf-poppler     # PDF plugin for Zathura using Poppler
+
+# Gaming tools
+steam                   # Gaming platform and launcher
+vulkan-icd-loader       # Vulkan driver loader
+lib32-vulkan-icd-loader # 32-bit Vulkan driver loader
+gamemode                # Performance tuning for games
+
+# Streaming & recording
+obs-studio              # Open Broadcaster 
+
+# Printer utils
+system-config-printer
+cups
+
+# fido2 dependency
+libfido2
