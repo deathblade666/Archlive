@@ -196,16 +196,21 @@ EOF
 
 enable_system_services() {
     system_type=$(hostnamectl | grep "Chassis")
-    if [[ "$DE" == "KDE" || "$DE" == "Sway" || "$DE" == "Hyprland" ]]; then
-      mkdir -p /etc/sddm.conf.d
-  cat > /etc/sddm.conf.d/wayland.conf << 'EOF'
+   if [[ "$DE" == "KDE" || "$DE" == "Sway" || "$DE" == "Hyprland" ]]; then
+    mkdir -p /etc/sddm.conf.d
+    cat > /etc/sddm.conf.d/wayland.conf << 'EOF'
 [General]
 DisplayServer=wayland
 EOF
-      systemctl enable sddm 2>&1 | grep -vE 'Created symlink|is not a native service'
-    elif [[ "$DE" == "GNOME" ]]; then
-      systemctl enable gdm 2>&1 | grep -vE 'Created symlink|is not a native service'
+
+    if [[ "$ACCOUNT_TYPE" == "traditional" ]]; then
+        systemctl enable sddm 2>&1 | grep -vE 'Created symlink|is not a native service'
     fi
+elif [[ "$DE" == "GNOME" ]]; then
+    if [[ "$ACCOUNT_TYPE" == "traditional" ]]; then
+        systemctl enable gdm 2>&1 | grep -vE 'Created symlink|is not a native service'
+    fi
+fi
 
     systemctl enable bluetooth 2>&1 | grep -vE 'Created symlink|is not a native service'
     systemctl enable NetworkManager 2>&1 | grep -vE 'Created symlink|is not a native service'
